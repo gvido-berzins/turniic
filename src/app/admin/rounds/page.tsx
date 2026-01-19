@@ -24,7 +24,7 @@ export default function RoundsAdmin() {
       const { data } = await supabase
         .from('rounds')
         .select('*')
-        .order('round_number')
+        .order('round_number', { ascending: false })
 
       if (data) {
         setRounds(data)
@@ -83,7 +83,7 @@ export default function RoundsAdmin() {
         setErrors(error.errors.map(e => e.message))
       } else {
         console.error('Error saving round:', error)
-        setErrors(['Failed to save round'])
+        setErrors(['Neizdevās saglabāt raundi'])
       }
     } finally {
       setSubmitting(false)
@@ -91,7 +91,7 @@ export default function RoundsAdmin() {
   }
 
   async function handleDelete(round: Round) {
-    if (!confirm(`Are you sure you want to delete "${round.name}"? This will also delete all scores for this round.`)) {
+    if (!confirm(`Vai tiešām vēlaties dzēst "${round.name || `Raunds ${round.round_number}`}"? Tas arī dzēsīs visus šī raunda rezultātus.`)) {
       return
     }
 
@@ -106,7 +106,7 @@ export default function RoundsAdmin() {
       await fetchRounds()
     } catch (error) {
       console.error('Error deleting round:', error)
-      alert('Failed to delete round')
+      alert('Neizdevās dzēst raundi')
     }
   }
 
@@ -119,80 +119,85 @@ export default function RoundsAdmin() {
   }
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 min-h-screen bg-gray-50">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-black mb-2">Rounds</h2>
+          <h2 className="text-2xl font-bold text-black mb-2">Raundi</h2>
           <Link 
             href="/admin"
             className="text-red-600 hover:underline"
           >
-            ← Back to Admin
+            ← Atpakaļ
           </Link>
         </div>
         <button
           onClick={() => openForm()}
-          className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white w-12 h-12 rounded-full font-medium hover:bg-red-700 transition-colors flex items-center justify-center shadow-lg"
+          title="Pievienot raundi"
         >
-          Add Round
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
         </button>
       </div>
 
       {rounds.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-black text-lg mb-4">No rounds yet</p>
+          <p className="text-black text-lg mb-4">Nav raundi</p>
           <button
             onClick={() => openForm()}
-            className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white w-16 h-16 rounded-full font-medium hover:bg-red-700 transition-colors flex items-center justify-center shadow-lg mx-auto"
+            title="Pievienot pirmo raundi"
           >
-            Add First Round
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
           </button>
         </div>
       ) : (
-        <div className="bg-white border border-black rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-red-600">
-              <tr>
-                <th className="px-4 py-3 text-left text-white font-semibold">Round #</th>
-                <th className="px-4 py-3 text-left text-white font-semibold">Name</th>
-                <th className="px-4 py-3 text-right text-white font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rounds.map((round, index) => (
-                <tr key={round.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-3 text-black font-medium">
-                    {round.round_number}
-                  </td>
-                  <td className="px-4 py-3 text-black">
-                    {round.name}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Link
-                        href={`/admin/scores/${round.id}`}
-                        className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
-                      >
-                        Scores
-                      </Link>
-                      <button
-                        onClick={() => openForm(round)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(round)}
-                        className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {rounds.map((round) => (
+            <Link
+              key={round.id}
+              href={`/admin/scores/${round.id}`}
+              className="bg-white rounded-lg p-4 flex items-center justify-between hover:bg-gray-100 transition-colors block shadow-sm"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-black font-bold text-xl w-8">
+                  {round.round_number}
+                </span>
+                <span className="text-black font-medium text-lg">
+                  {round.name || `Raunds ${round.round_number}`}
+                </span>
+              </div>
+              <div className="flex gap-2" onClick={(e) => e.preventDefault()}>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openForm(round);
+                  }}
+                  className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition-colors" title="Rediģēt"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDelete(round);
+                  }}
+                  className="bg-red-600 text-white p-2 rounded hover:bg-red-700 transition-colors" title="Dzēst"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </Link>
+          ))}
         </div>
       )}
 
@@ -200,7 +205,7 @@ export default function RoundsAdmin() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-bold text-black mb-4">
-              {editingRound ? 'Edit Round' : 'Add Round'}
+              {editingRound ? 'Rediģēt raundi' : 'Pievienot raundi'}
             </h3>
 
             {errors.length > 0 && (
@@ -216,7 +221,7 @@ export default function RoundsAdmin() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label htmlFor="round_number" className="block text-black font-medium mb-2">
-                  Round Number
+                  Raunda numurs
                 </label>
                 <input
                   type="number"
@@ -231,7 +236,7 @@ export default function RoundsAdmin() {
 
               <div className="mb-4">
                 <label htmlFor="name" className="block text-black font-medium mb-2">
-                  Round Name
+                  Raunda nosaukums (Neobligāti)
                 </label>
                 <input
                   type="text"
@@ -239,8 +244,7 @@ export default function RoundsAdmin() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full border border-black rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
-                  placeholder="Enter round name"
-                  required
+                  placeholder="Ievadiet raunda nosaukumu (neobligāti)"
                 />
               </div>
 
@@ -251,14 +255,14 @@ export default function RoundsAdmin() {
                   disabled={submitting}
                   className="px-4 py-2 border border-black rounded-lg text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  Atcelt
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : editingRound ? 'Update' : 'Add'}
+                  {submitting ? 'Saglabā...' : editingRound ? 'Atjaunināt' : 'Pievienot'}
                 </button>
               </div>
             </form>

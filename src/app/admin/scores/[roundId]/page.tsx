@@ -22,12 +22,26 @@ export default function ScoresAdmin() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [hasChanges, setHasChanges] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [nameFilter, setNameFilter] = useState('')
 
   useEffect(() => {
     if (roundId) {
       fetchData()
     }
   }, [roundId])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh || hasChanges) return
+
+    const interval = setInterval(() => {
+      fetchDataSilently()
+    }, 10000) // Refresh every 10 seconds
+
+    return () => clearInterval(interval)
+  }, [autoRefresh, hasChanges, roundId])
 
   async function fetchData() {
     try {
@@ -56,11 +70,38 @@ export default function ScoresAdmin() {
 
       setRound(roundResult.data)
       setScoreEntries(entries)
+      setLastRefresh(new Date())
     } catch (error) {
       console.error('Error fetching data:', error)
       setErrors(['Failed to load data'])
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchDataSilently() {
+    try {
+      const [participantsResult, scoresResult] = await Promise.all([
+        supabase.from('participants').select('*').order('name'),
+        supabase.from('scores').select('*').eq('round_id', roundId)
+      ])
+
+      const participants = participantsResult.data || []
+      const scores = scoresResult.data || []
+
+      const entries: ScoreEntry[] = participants.map(participant => {
+        const existingScore = scores.find(s => s.participant_id === participant.id)
+        return {
+          participant,
+          score: existingScore || null,
+          points: existingScore?.points || 0
+        }
+      })
+
+      setScoreEntries(entries)
+      setLastRefresh(new Date())
+    } catch (error) {
+      console.error('Error refreshing data:', error)
     }
   }
 
@@ -151,27 +192,28 @@ export default function ScoresAdmin() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-black mb-1">
-            Round {round.round_number}: {round.name}
-          </h2>
-          <p className="text-black mb-2">Enter scores for all participants</p>
-          <Link 
-            href="/admin/rounds"
-            className="text-red-600 hover:underline"
+    <div className="p-4 md:p-8 min-h-screen bg-gray-50">
+      <div className="mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-black mb-1">
+              {round.round_number}{round.name ? ` (${round.name})` : ''}
+            </h2>
+            <Link 
+              href="/admin/rounds"
+              className="text-red-600 hover:underline text-sm md:text-base"
+            >
+              ← Atpakaļ
+            </Link>
+          </div>
+          <button
+            onClick={saveScores}
+            disabled={!hasChanges || saving}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full text-lg"
           >
-            ← Back to Rounds
-          </Link>
+            {saving ? 'Saglabā...' : 'Saglabāt'}
+          </button>
         </div>
-        <button
-          onClick={saveScores}
-          disabled={!hasChanges || saving}
-          className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving...' : 'Save All Scores'}
-        </button>
       </div>
 
       {errors.length > 0 && (
@@ -201,62 +243,69 @@ export default function ScoresAdmin() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white border border-black rounded-lg overflow-hidden">
-          <div className="bg-red-600 px-4 py-3 flex justify-between items-center">
-            <h3 className="text-white font-semibold">Score Entry</h3>
-            <span className="text-white text-sm">Total: {totalPoints} points</span>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left text-black font-semibold sticky left-0 bg-gray-100">
-                    Participant
-                  </th>
-                  <th className="px-4 py-3 text-center text-black font-semibold min-w-[150px]">
-                    Points
-                  </th>
-                  <th className="px-4 py-3 text-right text-black font-semibold">
-                    Current Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {scoreEntries.map((entry, index) => (
-                  <tr key={entry.participant.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 text-black font-medium sticky left-0 bg-inherit border-r border-gray-200">
-                      {entry.participant.name}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <input
-                        type="number"
-                        value={entry.points}
-                        onChange={(e) => updateScore(entry.participant.id, parseInt(e.target.value) || 0)}
-                        className="w-24 border border-black rounded px-3 py-2 text-center text-black focus:outline-none focus:ring-2 focus:ring-red-600"
-                        step="1"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right text-black">
-                      <ParticipantTotal participantId={entry.participant.id} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div>
+          {/* Search Filter */}
+          <div className="mb-4">
+            <div className="relative max-w-md">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                className="w-full border border-black rounded-lg px-3 py-2 pr-10 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
+              />
+              <svg 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {nameFilter && (
+              <p className="text-sm text-gray-600 mt-2">
+                Showing {scoreEntries.filter(entry => entry.participant.name.toLowerCase().includes(nameFilter.toLowerCase())).length} of {scoreEntries.length} participants
+              </p>
+            )}
           </div>
 
-          <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-t border-gray-200">
-            <span className="text-black font-medium">
-              {scoreEntries.length} participants
-            </span>
-            <button
-              onClick={saveScores}
-              disabled={!hasChanges || saving}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Saving...' : 'Save All'}
-            </button>
+          <div className="space-y-2">
+            {scoreEntries
+              .filter(entry => 
+                entry.participant.name.toLowerCase().includes(nameFilter.toLowerCase())
+              )
+              .map((entry) => (
+              <div key={entry.participant.id} className="bg-white rounded-lg p-4 flex items-center justify-between hover:bg-gray-100 transition-colors shadow-sm">
+                <div className="flex items-center gap-4">
+                  <span className="text-black font-medium text-lg">
+                    {entry.participant.name}
+                  </span>
+                  <span className="text-gray-500 text-sm">
+                    (<ParticipantTotal participantId={entry.participant.id!} />)
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={entry.points}
+                    onChange={(e) => updateScore(entry.participant.id!, parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.currentTarget.select()}
+                    onClick={(e) => e.currentTarget.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur()
+                        saveScores()
+                      }
+                    }}
+                    className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-center text-black focus:outline-none focus:ring-2 focus:ring-red-600 text-lg"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

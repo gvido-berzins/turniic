@@ -14,6 +14,7 @@ export default function ParticipantsAdmin() {
   const [formData, setFormData] = useState({ name: '' })
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [nameFilter, setNameFilter] = useState('')
 
   useEffect(() => {
     fetchParticipants()
@@ -80,7 +81,7 @@ export default function ParticipantsAdmin() {
         setErrors(error.errors.map(e => e.message))
       } else {
         console.error('Error saving participant:', error)
-        setErrors(['Failed to save participant'])
+        setErrors(['Neizdevās saglabāt dalībnieku'])
       }
     } finally {
       setSubmitting(false)
@@ -88,7 +89,7 @@ export default function ParticipantsAdmin() {
   }
 
   async function handleDelete(participant: Participant) {
-    if (!confirm(`Are you sure you want to delete ${participant.name}? This will also delete all their scores.`)) {
+    if (!confirm(`Vai tiešām vēlaties dzēst ${participant.name}? Tas arī dzēsīs visus viņu rezultātus.`)) {
       return
     }
 
@@ -103,7 +104,7 @@ export default function ParticipantsAdmin() {
       await fetchParticipants()
     } catch (error) {
       console.error('Error deleting participant:', error)
-      alert('Failed to delete participant')
+      alert('Neizdevās dzēst dalībnieku')
     }
   }
 
@@ -116,70 +117,98 @@ export default function ParticipantsAdmin() {
   }
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 min-h-screen bg-gray-50">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-black mb-2">Participants</h2>
+          <h2 className="text-2xl font-bold text-black mb-2">Dalībnieki</h2>
           <Link 
             href="/admin"
             className="text-red-600 hover:underline"
           >
-            ← Back to Admin
+            ← Atpakaļ
           </Link>
         </div>
         <button
           onClick={() => openForm()}
-          className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white w-12 h-12 rounded-full font-medium hover:bg-red-700 transition-colors flex items-center justify-center shadow-lg"
+          title="Pievienot dalībnieku"
         >
-          Add Participant
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
         </button>
+      </div>
+
+      {/* Search Filter */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="Meklēt dalībniekus..."
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="w-full border border-black rounded-lg px-4 py-3 pr-10 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
+          />
+          <svg 
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        {nameFilter && (
+          <p className="text-sm text-gray-600 mt-2">
+            Rāda {participants.filter(p => p.name.toLowerCase().includes(nameFilter.toLowerCase())).length} no {participants.length} dalībniekiem
+          </p>
+        )}
       </div>
 
       {participants.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-black text-lg mb-4">No participants yet</p>
+          <p className="text-black text-lg mb-4">Nav dalībnieku</p>
           <button
             onClick={() => openForm()}
-            className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white w-16 h-16 rounded-full font-medium hover:bg-red-700 transition-colors flex items-center justify-center shadow-lg mx-auto"
+            title="Pievienot pirmo dalībnieku"
           >
-            Add First Participant
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
           </button>
         </div>
       ) : (
-        <div className="bg-white border border-black rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-red-600">
-              <tr>
-                <th className="px-4 py-3 text-left text-white font-semibold">Name</th>
-                <th className="px-4 py-3 text-right text-white font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {participants.map((participant, index) => (
-                <tr key={participant.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-4 py-3 text-black font-medium">
-                    {participant.name}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => openForm(participant)}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(participant)}
-                        className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {participants
+            .filter(participant => 
+              participant.name.toLowerCase().includes(nameFilter.toLowerCase())
+            )
+            .map((participant) => (
+            <div key={participant.id} className="bg-white rounded-lg p-4 flex items-center justify-between hover:bg-gray-100 transition-colors shadow-sm">
+              <span className="text-black font-medium text-lg">
+                {participant.name}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openForm(participant)}
+                  className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition-colors" title="Rediģēt"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => handleDelete(participant)}
+                  className="bg-red-600 text-white p-2 rounded hover:bg-red-700 transition-colors" title="Dzēst"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -187,7 +216,7 @@ export default function ParticipantsAdmin() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-bold text-black mb-4">
-              {editingParticipant ? 'Edit Participant' : 'Add Participant'}
+              {editingParticipant ? 'Rediģēt dalībnieku' : 'Pievienot dalībnieku'}
             </h3>
 
             {errors.length > 0 && (
@@ -203,7 +232,7 @@ export default function ParticipantsAdmin() {
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label htmlFor="name" className="block text-black font-medium mb-2">
-                  Name
+                  Vārds
                 </label>
                 <input
                   type="text"
@@ -211,7 +240,7 @@ export default function ParticipantsAdmin() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full border border-black rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
-                  placeholder="Enter participant name"
+                  placeholder="Ievadiet dalībnieka vārdu"
                   required
                 />
               </div>
@@ -223,14 +252,14 @@ export default function ParticipantsAdmin() {
                   disabled={submitting}
                   className="px-4 py-2 border border-black rounded-lg text-black hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  Atcelt
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : editingParticipant ? 'Update' : 'Add'}
+                  {submitting ? 'Saglabā...' : editingParticipant ? 'Atjaunināt' : 'Pievienot'}
                 </button>
               </div>
             </form>

@@ -8,7 +8,7 @@ export const participantSchema = z.object({
 
 export const roundSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1, 'Round name is required').max(100, 'Round name must be less than 100 characters'),
+  name: z.string().max(100, 'Round name must be less than 100 characters').optional(),
   round_number: z.number().int().min(1, 'Round number must be at least 1'),
   created_at: z.string().optional(),
 })

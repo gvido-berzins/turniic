@@ -28,14 +28,7 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-white">
-      <nav className="bg-red-600 text-white p-4">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-xl font-bold">TURNIIC Admin</h1>
-        </div>
-      </nav>
-      <main className="max-w-4xl mx-auto">
-        {children}
-      </main>
+      {children}
     </div>
   )
 }
