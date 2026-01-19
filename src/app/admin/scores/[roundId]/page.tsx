@@ -137,7 +137,7 @@ export default function ScoresAdmin() {
           updates.push(validatedScore)
         } catch (error) {
           if (error instanceof z.ZodError) {
-            validationErrors.push(`${entry.participant.name}: ${error.errors[0].message}`)
+            validationErrors.push(`${entry.participant.name}: ${error.issues[0].message}`)
           }
         }
       }

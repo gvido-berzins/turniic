@@ -78,7 +78,7 @@ export default function ParticipantsAdmin() {
       closeForm()
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setErrors(error.errors.map(e => e.message))
+        setErrors(error.issues.map(e => e.message))
       } else {
         console.error('Error saving participant:', error)
         setErrors(['Neizdevās saglabāt dalībnieku'])

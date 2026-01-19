@@ -74,21 +74,88 @@ npm start
 
 ## Deployment
 
-### Vercel Deployment
+### Vercel Deployment (Recommended)
 
-1. Push your code to a GitHub repository
-2. Connect the repository to Vercel
-3. Set environment variables in Vercel dashboard:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy
+#### Step 1: Prepare Repository
+1. Ensure your code is committed to a GitHub repository
+2. Make sure `.env.local` is in your `.gitignore` (it should be by default)
 
-### Database Migration
+#### Step 2: Deploy to Vercel
+1. Go to [vercel.com](https://vercel.com) and sign in with your GitHub account
+2. Click **"New Project"**
+3. Import your tournament app repository
+4. Vercel will auto-detect it as a Next.js project
+5. Click **"Deploy"** (initial deployment will fail due to missing environment variables)
 
-Run the SQL migration in your production Supabase project:
-```sql
--- Execute the contents of supabase/migrations/20250119000001_create_tables.sql
+#### Step 3: Configure Environment Variables
+1. In your Vercel dashboard, go to your project
+2. Navigate to **Settings** → **Environment Variables**
+3. Add the following variables:
+   - **Variable Name**: `NEXT_PUBLIC_SUPABASE_URL`
+   - **Value**: Your Supabase project URL (from Supabase dashboard → Settings → API)
+   - **Variable Name**: `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
+   - **Value**: Your Supabase anon/public key (from Supabase dashboard → Settings → API)
+4. Set environment for: **Production**, **Preview**, and **Development**
+5. Click **"Save"**
+
+#### Step 4: Redeploy
+1. Go to **Deployments** tab in your Vercel project
+2. Click the **three dots** on the latest deployment → **"Redeploy"**
+3. Your app should now deploy successfully
+
+#### Step 5: Set Up Custom Domain (Optional)
+1. In Vercel dashboard, go to **Settings** → **Domains**
+2. Add your custom domain
+3. Configure DNS records as instructed by Vercel
+
+### Production Database Setup
+
+#### Important: Use Production Supabase Project
+1. Create a **separate Supabase project** for production (don't use your development database)
+2. In your production Supabase project, go to **SQL Editor**
+3. Run the migration to create tables:
+   ```sql
+   -- Copy and paste the contents of supabase/migrations/20250119000001_create_tables.sql
+   ```
+4. Verify tables are created in **Table Editor**
+
+#### Security Configuration
+1. In Supabase dashboard → **Authentication** → **URL Configuration**
+2. Add your Vercel domain to **Site URL** and **Redirect URLs**
+3. In **Settings** → **API**, ensure **Row Level Security** is configured if needed
+
+### Deployment Verification
+
+After successful deployment:
+1. Visit your Vercel URL to see the public leaderboard
+2. Navigate to `/admin` to access the admin interface
+3. Test adding participants and rounds
+4. Verify score entry functionality
+5. Check that the PWA manifest works (try "Add to Home Screen" on mobile)
+
+### Environment Variables Reference
+
+```bash
+# Required for production
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
+
+### Troubleshooting Deployment
+
+**Build fails:**
+- Check that all dependencies are in `package.json`
+- Verify TypeScript errors with `npm run build` locally
+
+**Environment variables not working:**
+- Ensure variable names start with `NEXT_PUBLIC_`
+- Redeploy after adding/changing environment variables
+- Check Vercel function logs for detailed errors
+
+**Database connection issues:**
+- Verify Supabase URL and key are correct
+- Ensure production database has tables created via migration
+- Check Supabase project status and billing
 
 ## Usage
 

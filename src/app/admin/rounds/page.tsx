@@ -80,7 +80,7 @@ export default function RoundsAdmin() {
       closeForm()
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setErrors(error.errors.map(e => e.message))
+        setErrors(error.issues.map(e => e.message))
       } else {
         console.error('Error saving round:', error)
         setErrors(['Neizdevās saglabāt raundi'])
