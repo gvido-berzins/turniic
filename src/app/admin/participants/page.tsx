@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { participantSchema, type Participant } from '@/lib/schemas'
 import { z } from 'zod'
 
@@ -15,6 +15,7 @@ export default function ParticipantsAdmin() {
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [nameFilter, setNameFilter] = useState('')
+  const supabase = createClient()
 
   useEffect(() => {
     fetchParticipants()

@@ -11,7 +11,7 @@ A production-ready tournament scoring web application built with Next.js and Sup
   - Manage rounds (`/admin/rounds`) 
   - Enter scores (`/admin/scores/[roundId]`)
 - **PWA Support** - Add to home screen functionality for mobile admin
-- **No Authentication** - Open access with admin via hidden URL
+- **Magic Link Authentication** - Secure email-based login for admin access
 
 ## Tech Stack
 
@@ -44,18 +44,30 @@ A production-ready tournament scoring web application built with Next.js and Sup
 ### 3. Database Setup
 
 1. In your Supabase project dashboard, go to the SQL Editor
-2. Run the migration file to create the database schema:
+2. Run the migration files in order to create the database schema:
    ```sql
-   -- Copy and paste the contents of supabase/migrations/20250119000001_create_tables.sql
+   -- First, copy and paste the contents of supabase/migrations/20250119000001_create_tables.sql
+   -- Then, copy and paste the contents of supabase/migrations/20250127000001_add_auth_policies.sql
    ```
 
-### 4. Install Dependencies
+### 4. Configure Email Authentication
+
+1. In your Supabase dashboard, go to **Authentication** → **Providers**
+2. Enable **Email** provider
+3. Configure email templates (optional):
+   - Go to **Authentication** → **Email Templates**
+   - Customize the "Magic Link" template if desired
+4. Under **Authentication** → **URL Configuration**:
+   - Set **Site URL** to your app URL (e.g., `http://localhost:3000` for dev, your production URL for prod)
+   - Add redirect URLs: `http://localhost:3000/auth/callback` (and production equivalent)
+
+### 5. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 5. Start Development Server
+### 6. Start Development Server
 
 ```bash
 npm run dev
@@ -65,7 +77,7 @@ The application will be available at:
 - Public leaderboard: http://localhost:3000
 - Admin interface: http://localhost:3000/admin
 
-### 6. Build for Production
+### 7. Build for Production
 
 ```bash
 npm run build
@@ -120,9 +132,12 @@ npm start
 4. Verify tables are created in **Table Editor**
 
 #### Security Configuration
-1. In Supabase dashboard → **Authentication** → **URL Configuration**
-2. Add your Vercel domain to **Site URL** and **Redirect URLs**
-3. In **Settings** → **API**, ensure **Row Level Security** is configured if needed
+1. In Supabase dashboard → **Authentication** → **Providers**, enable **Email** provider
+2. In **Authentication** → **URL Configuration**:
+   - Set **Site URL** to your Vercel domain (e.g., `https://your-app.vercel.app`)
+   - Add redirect URL: `https://your-app.vercel.app/auth/callback`
+3. Run both migration files in **SQL Editor** to enable Row Level Security
+4. Configure email settings in **Authentication** → **Email Templates** (optional)
 
 ### Deployment Verification
 
@@ -159,13 +174,24 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
 ## Usage
 
+### Authentication
+
+1. Navigate to `/auth-a7f3k9x2` on your mobile device (keep this URL private)
+2. Enter your email address
+3. Check your email for the magic link (valid for 1 hour)
+4. Click the link to log in - you'll be redirected to `/admin`
+5. Your session will last for multiple hours/days with automatic refresh
+
+**Note:** Only authenticated users can modify data. The public leaderboard is accessible to everyone.
+
 ### Admin Workflow
 
-1. Navigate to `/admin` (bookmark this URL on mobile devices)
-2. Add participants in **Participants** section
-3. Create tournament rounds in **Rounds** section
-4. Enter scores for each round using the **Scores** button next to each round
-5. View live leaderboard at the root URL
+1. Log in via `/auth-a7f3k9x2` (first time or when session expires)
+2. You'll be automatically redirected to `/admin` after login
+3. Add participants in **Participants** section
+4. Create tournament rounds in **Rounds** section
+5. Enter scores for each round using the **Scores** button next to each round
+6. View live leaderboard at the root URL
 
 ### PWA Installation
 
@@ -190,18 +216,29 @@ src/
 │   │   ├── participants/      # Participant management
 │   │   ├── rounds/           # Round management  
 │   │   └── scores/[roundId]/ # Score entry
+│   ├── auth/
+│   │   ├── callback/         # Magic link callback handler
+│   │   └── auth-code-error/  # Auth error page
+│   ├── login/                # Login page with magic link form
 │   ├── p/[id]/               # Participant detail pages
 │   ├── layout.tsx            # Root layout with PWA setup
 │   └── page.tsx              # Public leaderboard
 ├── lib/
+│   ├── supabase/
+│   │   ├── client.ts         # Browser Supabase client
+│   │   ├── server.ts         # Server Supabase client
+│   │   └── middleware.ts     # Session refresh utilities
 │   ├── schemas.ts            # Zod validation schemas
-│   └── supabase.ts           # Supabase client config
+│   └── supabase.ts           # Legacy Supabase client (deprecated)
+├── middleware.ts             # Next.js middleware for auth
 public/
 ├── manifest.json             # PWA manifest
 ├── sw.js                     # Service worker
 └── icon-*.png               # PWA icons (placeholders)
 supabase/
-└── migrations/               # Database schema
+└── migrations/
+    ├── 20250119000001_create_tables.sql      # Initial schema
+    └── 20250127000001_add_auth_policies.sql  # Auth RLS policies
 ```
 
 ## Database Schema
@@ -214,6 +251,11 @@ Constraints:
 - Unique constraint on `(participant_id, round_id)` in scores table
 - Foreign key relationships with cascade deletes
 - Automatic `updated_at` triggers
+
+Row Level Security (RLS):
+- **Public read access** - Anyone can view leaderboard and participant data
+- **Authenticated write access** - Only logged-in users can insert, update, or delete data
+- Database-level security ensures protection even if client code has vulnerabilities
 
 ## Color Scheme
 

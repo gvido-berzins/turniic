@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { roundSchema, type Round } from '@/lib/schemas'
 import { z } from 'zod'
 
@@ -14,6 +14,7 @@ export default function RoundsAdmin() {
   const [formData, setFormData] = useState({ name: '', round_number: 1 })
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const supabase = createClient()
 
   useEffect(() => {
     fetchRounds()

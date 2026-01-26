@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { scoreSchema, type Participant, type Round, type Score } from '@/lib/schemas'
 import { z } from 'zod'
 
@@ -25,6 +25,7 @@ export default function ScoresAdmin() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [nameFilter, setNameFilter] = useState('')
+  const supabase = createClient()
 
   useEffect(() => {
     if (roundId) {
@@ -315,6 +316,7 @@ export default function ScoresAdmin() {
 
 function ParticipantTotal({ participantId }: { participantId: string }) {
   const [total, setTotal] = useState<number | null>(null)
+  const supabase = createClient()
 
   useEffect(() => {
     fetchTotal()
