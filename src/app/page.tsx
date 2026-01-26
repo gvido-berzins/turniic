@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { LeaderboardEntry } from '@/lib/schemas'
+import { leaderboardStyles as styles } from '@/lib/leaderboard-styles'
 
 export default function Home() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
@@ -138,8 +139,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className={`min-h-screen ${styles.loading.background} flex items-center justify-center`}>
+        <div className={styles.loading.textColor}>Loading...</div>
       </div>
     )
   }
@@ -147,11 +148,11 @@ export default function Home() {
   const maxRoundNumber = rounds.length > 0 ? Math.max(...rounds.map(r => r.round_number)) : 0
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col p-4 md:p-8 overflow-hidden">
+    <div className={`h-screen ${styles.page.background} flex flex-col ${styles.page.padding} overflow-hidden`}>
       <div className="w-full mx-auto flex-1 flex flex-col">
         <div className="text-center mb-6">
-          <div className="inline-block bg-gray-200 px-6 py-3 rounded-sm shadow-lg transform -rotate-1">
-            <h1 className="text-2xl md:text-4xl font-mono tracking-wider font-bold text-gray-900 uppercase">
+          <div className={`inline-block ${styles.title.container.background} ${styles.title.container.padding} ${styles.title.container.borderRadius} ${styles.title.container.shadow} transform ${styles.title.container.rotation}`}>
+            <h1 className={`${styles.title.text.size} ${styles.title.text.font} ${styles.title.text.tracking} ${styles.title.text.weight} ${styles.title.text.color} ${styles.title.text.transform}`}>
               Trijnieku Turniirs
             </h1>
           </div>
@@ -159,36 +160,36 @@ export default function Home() {
 
         {leaderboard.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-400 text-lg">No participants yet</p>
+            <p className={`${styles.emptyState.textColor} ${styles.emptyState.textSize}`}>No participants yet</p>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col rounded-lg overflow-hidden bg-gray-200/90 backdrop-blur-sm">
+          <div className={`flex-1 flex flex-col ${styles.tableContainer.borderRadius} overflow-hidden ${styles.tableContainer.background} ${styles.tableContainer.backdropBlur}`}>
             <div className="flex-1 overflow-auto">
               <table className="w-full border-collapse h-full">
-                <thead className="bg-gray-200 border-b border-gray-300">
+                <thead className={`${styles.tableHeader.background} ${styles.tableHeader.border}`}>
                   <tr>
-                    <th className="px-4 py-4 text-left text-red-600 font-bold uppercase tracking-wider w-24">Vieta</th>
-                    <th className="px-4 py-4 text-left text-red-600 font-bold uppercase tracking-wider sticky left-0 bg-gray-200 min-w-[200px]">Vārds</th>
+                    <th className={`${styles.tableHeader.cell.padding} text-left ${styles.tableHeader.cell.textColor} ${styles.tableHeader.cell.fontWeight} ${styles.tableHeader.cell.transform} ${styles.tableHeader.cell.tracking} ${styles.tableHeader.cell.minWidth.rank}`}>Vieta</th>
+                    <th className={`${styles.tableHeader.cell.padding} text-left ${styles.tableHeader.cell.textColor} ${styles.tableHeader.cell.fontWeight} ${styles.tableHeader.cell.transform} ${styles.tableHeader.cell.tracking} sticky left-0 ${styles.tableHeader.background} ${styles.tableHeader.cell.minWidth.name}`}>Vārds</th>
                     {rounds.map((round, index) => (
-                      <th key={round.id} className={`px-4 py-4 text-center text-red-600 font-bold uppercase tracking-wider min-w-[100px] ${index === 0 ? 'border-l border-gray-400' : ''} ${index === rounds.length - 1 ? 'border-r border-gray-400' : ''}`}>
+                      <th key={round.id} className={`${styles.tableHeader.cell.padding} text-center ${styles.tableHeader.cell.textColor} ${styles.tableHeader.cell.fontWeight} ${styles.tableHeader.cell.transform} ${styles.tableHeader.cell.tracking} ${styles.tableHeader.cell.minWidth.round} ${index === 0 ? styles.roundBorder.left : ''} ${index === rounds.length - 1 ? styles.roundBorder.right : ''}`}>
                         {round.name || round.round_number}
                       </th>
                     ))}
-                    <th className="px-4 py-4 text-center text-red-600 font-bold uppercase tracking-wider min-w-[100px]">Punkti</th>
+                    <th className={`${styles.tableHeader.cell.padding} text-center ${styles.tableHeader.cell.textColor} ${styles.tableHeader.cell.fontWeight} ${styles.tableHeader.cell.transform} ${styles.tableHeader.cell.tracking} ${styles.tableHeader.cell.minWidth.total}`}>Punkti</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-300/50">
+                <tbody className={styles.tableBody.divider}>
                   {leaderboard.map((entry, index) => (
-                    <tr key={entry.id} className={`${index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-200'} hover:bg-white transition-colors`}>
-                      <td className="px-4 py-6">
-                        <span className="text-5xl font-bold text-red-600 font-mono">
+                    <tr key={entry.id} className={`${index % 2 === 0 ? styles.tableBody.row.even : styles.tableBody.row.odd} ${styles.tableBody.row.hover} ${styles.tableBody.row.transition}`}>
+                      <td className={styles.tableBody.cell.padding}>
+                        <span className={`${styles.rank.textSize} ${styles.rank.fontWeight} ${styles.rank.textColor} ${styles.rank.font}`}>
                           {index + 1}
                         </span>
                       </td>
-                      <td className="px-4 py-6 sticky left-0 bg-inherit">
+                      <td className={`${styles.tableBody.cell.padding} sticky left-0 bg-inherit`}>
                         <Link 
                           href={`/p/${entry.id}`}
-                          className="text-gray-800 font-medium text-lg uppercase tracking-wide hover:text-red-600 transition-colors block truncate"
+                          className={`${styles.participantName.textColor} ${styles.participantName.fontWeight} ${styles.participantName.textSize} ${styles.participantName.transform} ${styles.participantName.tracking} ${styles.participantName.hover} ${styles.participantName.transition} block truncate`}
                           title={entry.name}
                         >
                           {entry.name.toUpperCase()}
@@ -203,24 +204,28 @@ export default function Home() {
                         const isRecentlyUpdated = recentlyUpdated.has(scoreKey)
                         
                         let bgClass = ''
+                        let textClass = `${styles.score.regular.textSize} ${styles.score.regular.fontWeight} ${styles.score.regular.font} ${styles.score.regular.textColor}`
+                        
                         if (isRecentlyUpdated) {
-                          bgClass = 'bg-green-200/70'
+                          bgClass = styles.score.updated.background
+                          textClass = `${styles.score.updated.textSize} ${styles.score.updated.fontWeight} ${styles.score.updated.font} ${styles.score.updated.textColor}`
                         } else if (isLatest) {
-                          bgClass = 'bg-red-100/30'
+                          bgClass = styles.score.latest.background
+                          textClass = `${styles.score.latest.textSize} ${styles.score.latest.fontWeight} ${styles.score.latest.font} ${styles.score.latest.textColor}`
                         }
                         
                         return (
-                          <td key={round.id} className={`px-4 py-6 text-center ${index === 0 ? 'border-l border-gray-400' : ''} ${index === rounds.length - 1 ? 'border-r border-gray-400' : ''} ${bgClass} transition-colors duration-1000`}>
+                          <td key={round.id} className={`${styles.tableBody.cell.padding} text-center ${index === 0 ? styles.roundBorder.left : ''} ${index === rounds.length - 1 ? styles.roundBorder.right : ''} ${bgClass} ${styles.score.transition}`}>
                             <div className="flex flex-col items-center gap-2">
-                              <span className={`text-2xl font-medium font-mono ${isRecentlyUpdated ? 'text-green-800 font-bold' : isLatest ? 'text-red-700 font-bold' : 'text-gray-800'}`}>
+                              <span className={textClass}>
                                 {hasScore ? points : '0'}
                               </span>
                             </div>
                           </td>
                         )
                       })}
-                      <td className={`px-4 py-6 text-center ${recentlyUpdated.has(`${entry.id}-total`) ? 'bg-green-200/70' : ''} transition-colors duration-1000`}>
-                        <span className={`text-3xl font-bold font-mono ${recentlyUpdated.has(`${entry.id}-total`) ? 'text-green-800' : 'text-gray-900'}`}>
+                      <td className={`${styles.tableBody.cell.padding} text-center ${recentlyUpdated.has(`${entry.id}-total`) ? styles.totalPoints.updatedBackground : ''} ${styles.totalPoints.transition}`}>
+                        <span className={`${styles.totalPoints.textSize} ${styles.totalPoints.fontWeight} ${styles.totalPoints.font} ${recentlyUpdated.has(`${entry.id}-total`) ? styles.totalPoints.updatedColor : styles.totalPoints.textColor}`}>
                           {entry.total_points}
                         </span>
                       </td>
@@ -229,13 +234,13 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
-            <div className="mt-2 flex justify-end">
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-400 font-mono">
+            <div className={`${styles.footer.container.margin} flex justify-end`}>
+              <div className={`flex items-center ${styles.footer.container.gap}`}>
+                <span className={`${styles.footer.timestamp.textSize} ${styles.footer.timestamp.textColor} ${styles.footer.timestamp.font}`}>
                   Atjaunots: {lastRefresh.toLocaleTimeString('lv-LV', { hour12: false })}
                 </span>
                 {recentlyUpdated.size > 0 && (
-                  <span className="text-xs text-green-400 font-mono animate-pulse">
+                  <span className={`${styles.footer.updateIndicator.textSize} ${styles.footer.updateIndicator.textColor} ${styles.footer.updateIndicator.font} ${styles.footer.updateIndicator.animation}`}>
                     ● {recentlyUpdated.size} izmaiņas
                   </span>
                 )}
@@ -245,11 +250,11 @@ export default function Home() {
         )}
         
         {/* Bottom cards image - fixed at bottom */}
-        <div className="mt-4 text-center">
+        <div className={`${styles.bottomImage.margin} text-center`}>
           <img 
             src="/assets/cards_bottom.png" 
             alt="Cards Bottom" 
-            className="mx-auto max-w-full h-16 md:h-20 object-contain opacity-80"
+            className={`mx-auto max-w-full ${styles.bottomImage.height} object-contain ${styles.bottomImage.opacity}`}
           />
         </div>
       </div>
