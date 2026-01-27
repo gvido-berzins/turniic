@@ -140,6 +140,12 @@ export default function ParticipantsAdmin() {
         </button>
       </div>
 
+      <div className="mb-6 bg-white rounded-lg p-4 shadow-sm">
+        <p className="text-black text-lg">
+          <span className="font-semibold">Kopā dalībnieku:</span> <span className="font-bold text-red-600">{participants.length}</span>
+        </p>
+      </div>
+
       {/* Search Filter */}
       <div className="mb-6">
         <div className="relative max-w-md">

@@ -286,11 +286,22 @@ export default function ScoresAdmin() {
                     (<ParticipantTotal participantId={entry.participant.id!} />)
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateScore(entry.participant.id!, entry.points * -1)}
+                    className="w-10 h-10 border border-gray-300 rounded-lg text-black hover:bg-gray-100 transition-colors flex items-center justify-center font-bold text-lg"
+                    title="Toggle positive/negative"
+                  >
+                    {entry.points >= 0 ? '+' : '−'}
+                  </button>
                   <input
-                    type="number"
-                    value={entry.points}
-                    onChange={(e) => updateScore(entry.participant.id!, parseInt(e.target.value) || 0)}
+                    type="text"
+                    value={Math.abs(entry.points)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0
+                      updateScore(entry.participant.id!, entry.points < 0 ? -Math.abs(val) : Math.abs(val))
+                    }}
                     onFocus={(e) => e.currentTarget.select()}
                     onClick={(e) => e.currentTarget.select()}
                     onKeyDown={(e) => {
@@ -300,7 +311,6 @@ export default function ScoresAdmin() {
                       }
                     }}
                     className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-center text-black focus:outline-none focus:ring-2 focus:ring-red-600 text-lg"
-                    step="1"
                     inputMode="numeric"
                     placeholder="0"
                   />

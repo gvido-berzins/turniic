@@ -18,7 +18,7 @@ export const leaderboardStyles = {
       rotation: '-rotate-1',
     },
     text: {
-      size: 'text-2xl md:text-4xl',
+      size: 'text-4xl md:text-4xl',
       font: 'font-mono',
       weight: 'font-bold',
       color: 'text-gray-900',
@@ -41,15 +41,17 @@ export const leaderboardStyles = {
   tableHeader: {
     background: 'bg-gray-200',
     border: 'border-b border-gray-300',
+    sticky: 'sticky top-0 z-10',
     cell: {
       padding: 'px-4 py-4',
       textColor: 'text-red-600',
+      textSize: 'text-4xl',
       fontWeight: 'font-bold',
       transform: 'uppercase',
       tracking: 'tracking-wider',
       minWidth: {
         rank: 'w-24',
-        name: 'min-w-[200px]',
+        name: 'w-auto',
         round: 'min-w-[100px]',
         total: 'min-w-[100px]',
       },
@@ -64,9 +66,29 @@ export const leaderboardStyles = {
       odd: 'bg-gray-200',
       hover: 'hover:bg-white',
       transition: 'transition-colors',
+      top3: 'bg-transparent',
+      bottom3: 'bg-transparent',
     },
     cell: {
-      padding: 'px-4 py-6',
+      padding: 'px-2 py-0.5',
+    },
+  },
+  
+  highlighting: {
+    enabled: true,
+    topCount: 3,
+    bottomCount: 3,
+    top3Text: {
+      fontWeight: 'font-extrabold',
+      textSize: 'text-5xl',
+      // textColor: 'text-red-900',
+      // scale: 'scale-210',
+    },
+    bottom3Text: {
+      fontWeight: 'font-extrabold',
+      textSize: 'text-5xl',
+      // textColor: 'text-red-900',
+      // scale: 'scale-110',
     },
   },
   
@@ -75,50 +97,61 @@ export const leaderboardStyles = {
     fontWeight: 'font-bold',
     textColor: 'text-red-600',
     font: 'font-mono',
+    changedColor: 'text-orange-900',
+    changedBackground: 'bg-yellow-300',
+    transition: 'transition-all duration-[3000ms] ease-out',
   },
   
   participantName: {
     textColor: 'text-gray-800',
-    fontWeight: 'font-medium',
-    textSize: 'text-lg',
+    fontWeight: 'font-large',
+    textSize: 'text-3xl',
     transform: 'uppercase',
     tracking: 'tracking-wide',
     hover: 'hover:text-red-600',
     transition: 'transition-colors',
+    downgraded: {
+      textColor: 'text-red-900',
+      background: 'bg-red-300',
+    },
+    improved: {
+      textColor: 'text-green-900',
+      background: 'bg-green-300',
+    },
   },
   
   score: {
     regular: {
-      textSize: 'text-2xl',
+      textSize: 'text-4xl',
       fontWeight: 'font-medium',
       font: 'font-mono',
       textColor: 'text-gray-800',
     },
     latest: {
-      textSize: 'text-2xl',
+      textSize: 'text-4xl',
       fontWeight: 'font-bold',
       font: 'font-mono',
       textColor: 'text-red-700',
       background: 'bg-red-100/30',
     },
     updated: {
-      textSize: 'text-2xl',
+      textSize: 'text-4xl',
       fontWeight: 'font-bold',
       font: 'font-mono',
       textColor: 'text-green-800',
-      background: 'bg-green-200/70',
+      background: 'bg-green-300',
     },
-    transition: 'transition-colors duration-1000',
+    transition: 'transition-all duration-[3000ms] ease-out',
   },
   
   totalPoints: {
-    textSize: 'text-3xl',
+    textSize: 'text-4xl',
     fontWeight: 'font-bold',
     font: 'font-mono',
     textColor: 'text-gray-900',
     updatedColor: 'text-green-800',
-    updatedBackground: 'bg-green-200/70',
-    transition: 'transition-colors duration-1000',
+    updatedBackground: 'bg-green-300',
+    transition: 'transition-all duration-[3000ms] ease-out',
   },
   
   footer: {
@@ -143,6 +176,21 @@ export const leaderboardStyles = {
     margin: 'mt-4',
     height: 'h-16 md:h-20',
     opacity: 'opacity-80',
+  },
+  
+  notification: {
+    container: 'fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md',
+    item: {
+      background: 'bg-green-500',
+      text: 'text-white',
+      padding: 'px-6 py-4',
+      borderRadius: 'rounded-lg',
+      shadow: 'shadow-xl',
+      fontSize: 'text-xl',
+      fontWeight: 'font-bold',
+      animation: 'animate-bounce',
+      transition: 'transition-all duration-300',
+    },
   },
   
   roundBorder: {

@@ -5,6 +5,14 @@ import Link from 'next/link'
 export default function AdminPage() {
   return (
     <div className="h-screen flex flex-col justify-center px-4 gap-8">
+      <div className="absolute top-4 right-4">
+        <Link
+          href="/"
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+        >
+          Tabula
+        </Link>
+      </div>
       <div className="h-48">
         <Link
           href="/admin/participants"
