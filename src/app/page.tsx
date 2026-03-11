@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { LeaderboardEntry } from '@/lib/schemas'
 import { leaderboardStyles as styles } from '@/lib/leaderboard-styles'
+import { tournamentConfig } from '@/config/tournament'
 
 // Configurable update interval in milliseconds (1000ms = 1 second)
 const UPDATE_INTERVAL_MS = 1000
@@ -272,7 +273,7 @@ export default function Home() {
           ))}
           <div className={`inline-block ${styles.title.container.background} ${styles.title.container.padding} ${styles.title.container.borderRadius} ${styles.title.container.shadow} transform ${styles.title.container.rotation}`}>
             <h1 className={`${styles.title.text.size} ${styles.title.text.font} ${styles.title.text.tracking} ${styles.title.text.weight} ${styles.title.text.color} ${styles.title.text.transform}`}>
-              Trijnieku Turniirs
+              {tournamentConfig.name}
             </h1>
           </div>
           {[...Array(23)].map((_, i) => (
