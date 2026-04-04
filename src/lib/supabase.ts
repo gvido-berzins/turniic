@@ -8,6 +8,29 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type Database = {
   public: {
     Tables: {
+      leaderboards: {
+        Row: {
+          id: string
+          name: string
+          refresh_interval_ms: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          refresh_interval_ms?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          refresh_interval_ms?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
       participants: {
         Row: {
           id: string
@@ -30,18 +53,21 @@ export type Database = {
           id: string
           name: string
           round_number: number
+          leaderboard_id: string
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           round_number: number
+          leaderboard_id: string
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
           round_number?: number
+          leaderboard_id?: string
           created_at?: string
         }
       }
