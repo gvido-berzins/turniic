@@ -16,7 +16,7 @@ type ScoreEntry = {
 export default function ScoresAdmin() {
   const params = useParams()
   const roundId = params.roundId as string
-  const [round, setRound] = useState<Round | null>(null)
+  const [round, setRound] = useState<(Round & { leaderboard_id?: string }) | null>(null)
   const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -65,7 +65,7 @@ export default function ScoresAdmin() {
         return {
           participant,
           score: existingScore || null,
-          points: existingScore?.points || 0
+          points: existingScore?.points ?? 0
         }
       })
 
@@ -95,7 +95,7 @@ export default function ScoresAdmin() {
         return {
           participant,
           score: existingScore || null,
-          points: existingScore?.points || 0
+          points: existingScore?.points ?? 0
         }
       })
 
@@ -181,11 +181,11 @@ export default function ScoresAdmin() {
       <div className="p-4 md:p-8">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-black mb-4">Round Not Found</h2>
-          <Link 
-            href="/admin/rounds"
+          <Link
+            href="/admin/leaderboards"
             className="text-red-600 hover:underline"
           >
-            Back to Rounds
+            Back to Leaderboards
           </Link>
         </div>
       </div>
@@ -200,11 +200,11 @@ export default function ScoresAdmin() {
             <h2 className="text-xl md:text-2xl font-bold text-black mb-1">
               {round.round_number}{round.name ? ` (${round.name})` : ''}
             </h2>
-            <Link 
-              href="/admin/rounds"
+            <Link
+              href={round.leaderboard_id ? `/admin/leaderboards/${round.leaderboard_id}` : '/admin/leaderboards'}
               className="text-red-600 hover:underline text-sm md:text-base"
             >
-              ← Atpakaļ
+              &larr; Atpaka&#316;
             </Link>
           </div>
           <button

@@ -1,13 +1,16 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { LeaderboardEntry } from '@/lib/schemas'
 import { leaderboardStyles as styles } from '@/lib/leaderboard-styles'
-import { tournamentConfig } from '@/config/tournament'
 
-// Configurable update interval in milliseconds (1000ms = 1 second)
-const UPDATE_INTERVAL_MS = 1000
+type LeaderboardOption = {
+  id: string
+  name: string
+  refresh_interval_ms: number
+  created_at: string
+}
 
 export default function Home() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
@@ -19,25 +22,84 @@ export default function Home() {
   const [rankDowngraded, setRankDowngraded] = useState<Set<string>>(new Set())
   const [rankImproved, setRankImproved] = useState<Set<string>>(new Set())
   const [scoreUpdates, setScoreUpdates] = useState<Array<{name: string, participantId: string}>>([])
-  
+
+  // Multiple leaderboards support
+  const [leaderboards, setLeaderboards] = useState<LeaderboardOption[]>([])
+  const [selectedLeaderboardId, setSelectedLeaderboardId] = useState<string | null>(null)
+  const [refreshInterval, setRefreshInterval] = useState(1000)
+
   // Use refs to track previous values so interval callback has access to current state
   const previousScoresRef = useRef<Map<string, number>>(new Map())
   const previousRanksRef = useRef<Map<string, number>>(new Map())
+  const selectedLeaderboardIdRef = useRef<string | null>(null)
 
+  // Keep ref in sync with state
   useEffect(() => {
-    fetchLeaderboard()
+    selectedLeaderboardIdRef.current = selectedLeaderboardId
+  }, [selectedLeaderboardId])
+
+  // Fetch available leaderboards on mount
+  useEffect(() => {
+    fetchLeaderboards()
   }, [])
 
-  // Auto-refresh effect
+  async function fetchLeaderboards() {
+    try {
+      const { data } = await supabase
+        .from('leaderboards')
+        .select('id, name, refresh_interval_ms, created_at')
+        .order('created_at', { ascending: false })
+
+      if (data && data.length > 0) {
+        setLeaderboards(data)
+        // Select the most recent leaderboard by default
+        const defaultLb = data[0]
+        setSelectedLeaderboardId(defaultLb.id)
+        selectedLeaderboardIdRef.current = defaultLb.id
+        setRefreshInterval(defaultLb.refresh_interval_ms)
+      } else {
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboards:', error)
+      setLoading(false)
+    }
+  }
+
+  // Fetch leaderboard data when selected leaderboard changes
   useEffect(() => {
+    if (selectedLeaderboardId) {
+      // Reset previous tracking on leaderboard switch
+      previousScoresRef.current = new Map()
+      previousRanksRef.current = new Map()
+      setLoading(true)
+      fetchLeaderboardData()
+    }
+  }, [selectedLeaderboardId])
+
+  // Auto-refresh effect using configurable interval
+  useEffect(() => {
+    if (!selectedLeaderboardId) return
+
     const interval = setInterval(() => {
-      fetchLeaderboard()
-    }, UPDATE_INTERVAL_MS)
+      fetchLeaderboardData()
+    }, refreshInterval)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [selectedLeaderboardId, refreshInterval])
 
-  async function fetchLeaderboard() {
+  function handleLeaderboardChange(id: string) {
+    const lb = leaderboards.find(l => l.id === id)
+    if (lb) {
+      setSelectedLeaderboardId(id)
+      setRefreshInterval(lb.refresh_interval_ms)
+    }
+  }
+
+  async function fetchLeaderboardData() {
+    const currentLeaderboardId = selectedLeaderboardIdRef.current
+    if (!currentLeaderboardId) return
+
     try {
       const { data: participants } = await supabase
         .from('participants')
@@ -46,39 +108,59 @@ export default function Home() {
       const { data: roundsData } = await supabase
         .from('rounds')
         .select('*')
+        .eq('leaderboard_id', currentLeaderboardId)
         .order('round_number')
 
-      const { data: scores } = await supabase
-        .from('scores')
-        .select(`
-          participant_id,
-          round_id,
-          points,
-          rounds!inner(name, round_number)
-        `)
+      if (!participants || !roundsData) return
 
-      if (!participants || !roundsData || !scores) return
+      // Get round IDs for this leaderboard
+      const roundIds = roundsData.map(r => r.id)
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let scores: Array<{ participant_id: string; round_id: string; points: number; rounds: any }> = []
+      if (roundIds.length > 0) {
+        const { data: scoresData } = await supabase
+          .from('scores')
+          .select(`
+            participant_id,
+            round_id,
+            points,
+            rounds!inner(name, round_number)
+          `)
+          .in('round_id', roundIds)
+
+        scores = (scoresData as typeof scores) || []
+      }
 
       setRounds(roundsData)
 
-      const leaderboardData: LeaderboardEntry[] = participants.map(participant => {
+      // Only include participants that have scores in this leaderboard
+      const participantIdsWithScores = new Set(scores.map(s => s.participant_id))
+      const relevantParticipants = participantIdsWithScores.size > 0
+        ? participants.filter(p => participantIdsWithScores.has(p.id))
+        : [] // Show no participants if no scores exist yet
+
+      // If there are rounds but no scores yet, show all participants
+      const participantsToShow = roundsData.length > 0 && relevantParticipants.length === 0
+        ? participants
+        : relevantParticipants
+
+      const leaderboardData: LeaderboardEntry[] = participantsToShow.map(participant => {
         const participantScores = scores.filter(s => s.participant_id === participant.id)
         const total_points = participantScores.reduce((sum, score) => sum + score.points, 0)
-        
-        // Find the highest round number that exists
+
         const maxRoundNumber = roundsData.length > 0 ? Math.max(...roundsData.map(r => r.round_number)) : 0
         const latestRound = roundsData.find(r => r.round_number === maxRoundNumber)
         const latestRoundScore = participantScores.find(s => s.round_id === latestRound?.id)
-        const latest_round_points = latestRoundScore?.points || null
+        const latest_round_points = latestRoundScore?.points ?? null
 
-        // Create scores array with all rounds (including missing ones as 0)
         const allRoundScores = roundsData.map(round => {
           const score = participantScores.find(s => s.round_id === round.id)
           return {
             round_id: round.id,
             round_name: round.name || `Round ${round.round_number}`,
             round_number: round.round_number,
-            points: score?.points || 0
+            points: score?.points ?? 0
           }
         })
 
@@ -96,12 +178,12 @@ export default function Home() {
           return b.total_points - a.total_points
         }
         if (a.latest_round_points !== b.latest_round_points) {
-          return (b.latest_round_points || 0) - (a.latest_round_points || 0)
+          return (b.latest_round_points ?? 0) - (a.latest_round_points ?? 0)
         }
         return a.name.localeCompare(b.name)
       })
 
-      // Check for updated scores and rank changes (only if we have previous data)
+      // Check for updated scores and rank changes
       const newRecentlyUpdated = new Set<string>()
       const newScoresMap = new Map<string, number>()
       const newRanksMap = new Map<string, number>()
@@ -109,45 +191,33 @@ export default function Home() {
       const newRankDowngraded = new Set<string>()
       const newRankImproved = new Set<string>()
       const updatedParticipants = new Set<string>()
-      
+
       leaderboardData.forEach((entry, index) => {
         const currentRank = index + 1
         newRanksMap.set(entry.id, currentRank)
-        
-        // Check for rank changes
+
         if (previousRanksRef.current.size > 0) {
           const previousRank = previousRanksRef.current.get(entry.id)
           if (previousRank !== undefined && previousRank !== currentRank) {
             newRankChanged.add(entry.id)
-            console.log(`Rank changed for ${entry.name}: ${previousRank} → ${currentRank}`)
-            
-            // Track rank downgrades (higher rank number = worse position)
             if (currentRank > previousRank) {
               newRankDowngraded.add(entry.id)
-              console.log(`⬇️ Rank downgraded for ${entry.name}: #${previousRank} → #${currentRank}`)
-            }
-            // Track rank improvements (lower rank number = better position)
-            else if (currentRank < previousRank) {
+            } else if (currentRank < previousRank) {
               newRankImproved.add(entry.id)
-              console.log(`⬆️ Rank improved for ${entry.name}: #${previousRank} → #${currentRank}`)
             }
           }
         }
-        
+
         entry.scores.forEach(score => {
           const scoreKey = `${entry.id}-${score.round_id}`
           newScoresMap.set(scoreKey, score.points)
-          
-          // Only check for changes if we have previous data (not on first load)
+
           if (previousScoresRef.current.size > 0) {
             const previousScore = previousScoresRef.current.get(scoreKey)
             if (previousScore !== undefined && previousScore !== score.points) {
               newRecentlyUpdated.add(scoreKey)
-              // Also add total points key for highlighting total
               newRecentlyUpdated.add(`${entry.id}-total`)
-              // Track this participant as having an update
               updatedParticipants.add(entry.id)
-              console.log(`Score changed for ${scoreKey}: ${previousScore} → ${score.points}`)
             }
           }
         })
@@ -155,78 +225,42 @@ export default function Home() {
 
       setLeaderboard(leaderboardData)
       setLastRefresh(new Date())
-      
-      // Only update highlights if we found changes
+
       if (newRecentlyUpdated.size > 0) {
         setRecentlyUpdated(newRecentlyUpdated)
-        console.log('Recently updated scores:', Array.from(newRecentlyUpdated))
       }
-      
-      // Update rank changes
+
       if (newRankChanged.size > 0) {
         setRankChanged(newRankChanged)
-        console.log('Rank changes:', Array.from(newRankChanged))
       }
-      
-      // Update rank downgrades
+
       if (newRankDowngraded.size > 0) {
         setRankDowngraded(newRankDowngraded)
-        console.log('Rank downgrades:', Array.from(newRankDowngraded))
-        
-        // Clear downgrade highlights after 3 seconds
-        setTimeout(() => {
-          setRankDowngraded(new Set())
-        }, 3000)
+        setTimeout(() => setRankDowngraded(new Set()), 3000)
       }
-      
-      // Update rank improvements
+
       if (newRankImproved.size > 0) {
         setRankImproved(newRankImproved)
-        console.log('Rank improvements:', Array.from(newRankImproved))
-        
-        // Clear improvement highlights after 3 seconds
-        setTimeout(() => {
-          setRankImproved(new Set())
-        }, 3000)
+        setTimeout(() => setRankImproved(new Set()), 3000)
       }
-      
-      // Update score change notifications
+
       if (updatedParticipants.size > 0) {
         const updates = Array.from(updatedParticipants).map(participantId => {
           const participant = leaderboardData.find(p => p.id === participantId)
-          return {
-            name: participant?.name || '',
-            participantId
-          }
+          return { name: participant?.name || '', participantId }
         })
         setScoreUpdates(updates)
-        console.log('📊 SCORE UPDATES DETECTED:', updates)
-        
-        // Clear notifications after 5 seconds
-        setTimeout(() => {
-          console.log('Clearing score update notifications')
-          setScoreUpdates([])
-        }, 5000)
-      } else if (previousScoresRef.current.size > 0) {
-        console.log('No score updates detected this refresh')
+        setTimeout(() => setScoreUpdates([]), 5000)
       }
-      
-      // Update refs with new values
+
       previousScoresRef.current = newScoresMap
       previousRanksRef.current = newRanksMap
-      
-      // Clear highlights after 3 seconds
+
       if (newRecentlyUpdated.size > 0) {
-        setTimeout(() => {
-          setRecentlyUpdated(new Set())
-        }, 3000)
+        setTimeout(() => setRecentlyUpdated(new Set()), 3000)
       }
-      
-      // Clear rank change highlights after 3 seconds
       if (newRankChanged.size > 0) {
-        setTimeout(() => {
-          setRankChanged(new Set())
-        }, 3000)
+        setTimeout(() => setRankChanged(new Set()), 3000)
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error)
@@ -234,6 +268,8 @@ export default function Home() {
       setLoading(false)
     }
   }
+
+  const selectedLeaderboard = leaderboards.find(l => l.id === selectedLeaderboardId)
 
   if (loading) {
     return (
@@ -251,40 +287,57 @@ export default function Home() {
       {scoreUpdates.length > 0 && (
         <div className={styles.notification.container}>
           {scoreUpdates.map((update, index) => (
-            <div 
+            <div
               key={`${update.participantId}-${index}`}
               className={`${styles.notification.item.background} ${styles.notification.item.text} ${styles.notification.item.padding} ${styles.notification.item.borderRadius} ${styles.notification.item.shadow} ${styles.notification.item.fontSize} ${styles.notification.item.fontWeight} ${styles.notification.item.animation} ${styles.notification.item.transition}`}
             >
-              📊 {update.name.toUpperCase()} - Rezultāts Atjaunināts!
+              {update.name.toUpperCase()} - Rezultāts Atjaunināts!
             </div>
           ))}
         </div>
       )}
-      
+
       <div className="w-full mx-auto flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-center gap-0 mb-3 flex-shrink-0">
           {[...Array(23)].map((_, i) => (
-            <img 
+            <img
               key={`left-${i}`}
-              src="/assets/cards_bottom.png" 
+              src="/assets/cards_bottom.png"
               alt={`Cards Left ${i + 1}`}
               className={`max-w-full ${styles.bottomImage.height} object-contain ${styles.bottomImage.opacity}`}
             />
           ))}
           <div className={`inline-block ${styles.title.container.background} ${styles.title.container.padding} ${styles.title.container.borderRadius} ${styles.title.container.shadow} transform ${styles.title.container.rotation}`}>
             <h1 className={`${styles.title.text.size} ${styles.title.text.font} ${styles.title.text.tracking} ${styles.title.text.weight} ${styles.title.text.color} ${styles.title.text.transform}`}>
-              {tournamentConfig.name}
+              {selectedLeaderboard?.name || 'TURNIIC'}
             </h1>
           </div>
           {[...Array(23)].map((_, i) => (
-            <img 
+            <img
               key={`right-${i}`}
-              src="/assets/cards_bottom.png" 
+              src="/assets/cards_bottom.png"
               alt={`Cards Right ${i + 1}`}
               className={`max-w-full ${styles.bottomImage.height} object-contain ${styles.bottomImage.opacity}`}
             />
           ))}
         </div>
+
+        {/* Leaderboard selector */}
+        {leaderboards.length > 1 && (
+          <div className="flex justify-center mb-3 flex-shrink-0">
+            <select
+              value={selectedLeaderboardId || ''}
+              onChange={(e) => handleLeaderboardChange(e.target.value)}
+              className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
+            >
+              {leaderboards.map((lb) => (
+                <option key={lb.id} value={lb.id}>
+                  {lb.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {leaderboard.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
@@ -310,18 +363,16 @@ export default function Home() {
                   {leaderboard.map((entry, index) => {
                     const isTop3 = styles.highlighting.enabled && index < styles.highlighting.topCount
                     const isBottom3 = styles.highlighting.enabled && index >= leaderboard.length - styles.highlighting.bottomCount
-                    
+
                     const rowBgClass = index % 2 === 0 ? styles.tableBody.row.even : styles.tableBody.row.odd
-                    
-                    const highlightTextClass = isTop3 ? `${styles.highlighting.top3Text.fontWeight} ${styles.highlighting.top3Text.textSize || ''}` : 
+
+                    const highlightTextClass = isTop3 ? `${styles.highlighting.top3Text.fontWeight} ${styles.highlighting.top3Text.textSize || ''}` :
                                               isBottom3 ? `${styles.highlighting.bottom3Text.fontWeight} ${styles.highlighting.bottom3Text.textSize || ''}` : ''
-                    
-                    // Only apply highlighting if this participant's score was actually updated
+
                     const hadScoreUpdate = recentlyUpdated.has(`${entry.id}-total`)
                     const isDowngraded = rankDowngraded.has(entry.id) && hadScoreUpdate
                     const isImproved = rankImproved.has(entry.id) && hadScoreUpdate
-                    
-                    // Determine background and text color for name cell
+
                     let nameBgClass = ''
                     let nameTextColor = styles.participantName.textColor
                     if (isDowngraded) {
@@ -331,10 +382,9 @@ export default function Home() {
                       nameBgClass = styles.participantName.improved.background
                       nameTextColor = styles.participantName.improved.textColor
                     } else {
-                      // Use row background when no rank change
                       nameBgClass = rowBgClass
                     }
-                    
+
                     return (
                     <tr key={entry.id} className={`${rowBgClass} ${styles.tableBody.row.hover} ${styles.tableBody.row.transition}`}>
                       <td className={`${styles.tableBody.cell.padding} text-center`}>
@@ -343,7 +393,7 @@ export default function Home() {
                         </span>
                       </td>
                       <td className={`${styles.tableBody.cell.padding} sticky left-0 ${nameBgClass} transition-all duration-[3000ms] ease-out`}>
-                        <span 
+                        <span
                           className={`${nameTextColor} ${styles.participantName.fontWeight} ${styles.participantName.textSize} ${styles.participantName.transform} ${styles.participantName.tracking} block whitespace-nowrap ${highlightTextClass} transition-all duration-[3000ms] ease-out`}
                           title={entry.name}
                         >
@@ -357,12 +407,11 @@ export default function Home() {
                         const isLatest = round.round_number === maxRoundNumber
                         const scoreKey = `${entry.id}-${round.id}`
                         const isRecentlyUpdated = recentlyUpdated.has(scoreKey)
-                        
-                        let bgClass = rowBgClass // Default to row background
+
+                        let bgClass = rowBgClass
                         let textClass = `${styles.score.regular.textSize} ${styles.score.regular.fontWeight} ${styles.score.regular.font} ${styles.score.regular.textColor}`
-                        
+
                         if (isRecentlyUpdated) {
-                          // Apply rank change styling to updated scores
                           if (isDowngraded) {
                             bgClass = styles.participantName.downgraded.background
                             textClass = `${styles.score.updated.textSize} ${styles.score.updated.fontWeight} ${styles.score.updated.font} ${styles.participantName.downgraded.textColor}`
@@ -377,7 +426,7 @@ export default function Home() {
                           bgClass = styles.score.latest.background
                           textClass = `${styles.score.latest.textSize} ${styles.score.latest.fontWeight} ${styles.score.latest.font} ${styles.score.latest.textColor}`
                         }
-                        
+
                         return (
                           <td key={round.id} className={`${styles.tableBody.cell.padding} text-center ${index === 0 ? styles.roundBorder.left : ''} ${index === rounds.length - 1 ? styles.roundBorder.right : ''} ${bgClass} ${styles.score.transition}`}>
                             <div className="flex flex-col items-center gap-2">

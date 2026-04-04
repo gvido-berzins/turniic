@@ -31,7 +31,7 @@ export default function AdminPage() {
       
       <div className="h-48">
         <Link
-          href="/admin/rounds"
+          href="/admin/leaderboards"
           className="bg-white rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center h-full"
         >
           <div className="text-center">
@@ -40,7 +40,7 @@ export default function AdminPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>
             </div>
-            <h3 className="text-xl font-medium text-black">Raundi</h3>
+            <h3 className="text-xl font-medium text-black">Tabulas</h3>
           </div>
         </Link>
       </div>

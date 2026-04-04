@@ -6,6 +6,11 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Participant, Round, Score } from '@/lib/schemas'
 
+type LeaderboardOption = {
+  id: string
+  name: string
+}
+
 type ParticipantWithScores = {
   participant: Participant
   scores: Array<Score & { round: Round }>
@@ -18,12 +23,37 @@ export default function ParticipantDetail() {
   const [data, setData] = useState<ParticipantWithScores | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [leaderboards, setLeaderboards] = useState<LeaderboardOption[]>([])
+  const [selectedLeaderboardId, setSelectedLeaderboardId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (id) {
+    fetchLeaderboards()
+  }, [])
+
+  useEffect(() => {
+    if (id && selectedLeaderboardId) {
       fetchParticipantDetail()
     }
-  }, [id])
+  }, [id, selectedLeaderboardId])
+
+  async function fetchLeaderboards() {
+    try {
+      const { data: lbs } = await supabase
+        .from('leaderboards')
+        .select('id, name')
+        .order('created_at', { ascending: false })
+
+      if (lbs && lbs.length > 0) {
+        setLeaderboards(lbs)
+        setSelectedLeaderboardId(lbs[0].id)
+      } else {
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboards:', error)
+      setLoading(false)
+    }
+  }
 
   async function fetchParticipantDetail() {
     try {
@@ -38,19 +68,34 @@ export default function ParticipantDetail() {
         return
       }
 
-      const { data: scores } = await supabase
-        .from('scores')
-        .select(`
-          *,
-          rounds!inner(*)
-        `)
-        .eq('participant_id', id)
-        .order('rounds.round_number')
+      // Get rounds for selected leaderboard
+      const { data: leaderboardRounds } = await supabase
+        .from('rounds')
+        .select('id')
+        .eq('leaderboard_id', selectedLeaderboardId!)
 
-      const scoresWithRounds = scores?.map(score => ({
-        ...score,
-        round: (score.rounds as any) as Round
-      })) || []
+      const roundIds = leaderboardRounds?.map(r => r.id) || []
+
+      let scoresWithRounds: Array<Score & { round: Round }> = []
+
+      if (roundIds.length > 0) {
+        const { data: scores } = await supabase
+          .from('scores')
+          .select(`
+            *,
+            rounds!inner(*)
+          `)
+          .eq('participant_id', id)
+          .in('round_id', roundIds)
+
+        scoresWithRounds = scores?.map(score => ({
+          ...score,
+          round: (score.rounds as any) as Round
+        })) || []
+
+        // Sort by round_number
+        scoresWithRounds.sort((a, b) => (a.round.round_number ?? 0) - (b.round.round_number ?? 0))
+      }
 
       const totalPoints = scoresWithRounds.reduce((sum, score) => sum + score.points, 0)
 
@@ -81,7 +126,7 @@ export default function ParticipantDetail() {
         <div className="max-w-4xl mx-auto p-4 md:p-8">
           <div className="text-center py-12">
             <h1 className="text-2xl font-bold text-black mb-4">Participant Not Found</h1>
-            <Link 
+            <Link
               href="/"
               className="text-red-600 hover:underline"
             >
@@ -97,11 +142,11 @@ export default function ParticipantDetail() {
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto p-4 md:p-8">
         <div className="mb-6">
-          <Link 
+          <Link
             href="/"
             className="text-red-600 hover:underline mb-4 inline-block"
           >
-            ← Back to Leaderboard
+            &larr; Back to Leaderboard
           </Link>
           <h1 className="text-3xl md:text-4xl font-bold text-black mb-2">
             {data.participant.name}
@@ -109,6 +154,26 @@ export default function ParticipantDetail() {
           <p className="text-xl text-black">
             Total Points: <span className="font-bold">{data.totalPoints}</span>
           </p>
+
+          {/* Leaderboard selector */}
+          {leaderboards.length > 1 && (
+            <div className="mt-3">
+              <select
+                value={selectedLeaderboardId || ''}
+                onChange={(e) => {
+                  setSelectedLeaderboardId(e.target.value)
+                  setLoading(true)
+                }}
+                className="border border-black rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
+              >
+                {leaderboards.map((lb) => (
+                  <option key={lb.id} value={lb.id}>
+                    {lb.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {data.scores.length === 0 ? (
