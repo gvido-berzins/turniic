@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import type { Participant, Round, Score } from '@/lib/schemas'
 
 type LeaderboardOption = {
@@ -18,6 +18,7 @@ type ParticipantWithScores = {
 }
 
 export default function ParticipantDetail() {
+  const supabase = createClient()
   const params = useParams()
   const id = params.id as string
   const [data, setData] = useState<ParticipantWithScores | null>(null)

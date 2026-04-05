@@ -1,8 +1,9 @@
-const CACHE_NAME = 'turniic-v1';
+const CACHE_NAME = 'turniic-v2';
 const urlsToCache = [
   '/admin',
   '/admin/participants',
   '/admin/rounds',
+  '/admin/leaderboards',
   '/',
   '/manifest.json'
 ];
@@ -16,15 +17,34 @@ self.addEventListener('install', function(event) {
   );
 });
 
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.filter(function(name) {
+          return name !== CACHE_NAME;
+        }).map(function(name) {
+          return caches.delete(name);
+        })
+      );
+    })
+  );
+});
+
 self.addEventListener('fetch', function(event) {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(function(response) {
-        if (response) {
-          return response;
+        if (response && response.status === 200 && response.type === 'basic') {
+          var responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseToCache);
+          });
         }
-        return fetch(event.request);
-      }
-    )
+        return response;
+      })
+      .catch(function() {
+        return caches.match(event.request);
+      })
   );
 });

@@ -11,6 +11,7 @@ type ScoreEntry = {
   participant: Participant
   score: Score | null
   points: number
+  totalPoints: number
 }
 
 export default function ScoresAdmin() {
@@ -44,12 +45,34 @@ export default function ScoresAdmin() {
     return () => clearInterval(interval)
   }, [autoRefresh, hasChanges, roundId])
 
+  async function buildEntries(
+    participants: Participant[],
+    scores: Array<{ participant_id: string; round_id: string; points: number }>,
+    allScores: Array<{ participant_id: string; points: number }>
+  ): Promise<ScoreEntry[]> {
+    const totalsByParticipant = new Map<string, number>()
+    for (const s of allScores) {
+      totalsByParticipant.set(s.participant_id, (totalsByParticipant.get(s.participant_id) || 0) + s.points)
+    }
+
+    return participants.map(participant => {
+      const existingScore = scores.find(s => s.participant_id === participant.id)
+      return {
+        participant,
+        score: existingScore || null,
+        points: existingScore?.points ?? 0,
+        totalPoints: totalsByParticipant.get(participant.id!) ?? 0
+      }
+    })
+  }
+
   async function fetchData() {
     try {
-      const [roundResult, participantsResult, scoresResult] = await Promise.all([
+      const [roundResult, participantsResult, scoresResult, allScoresResult] = await Promise.all([
         supabase.from('rounds').select('*').eq('id', roundId).single(),
         supabase.from('participants').select('*').order('name'),
-        supabase.from('scores').select('*').eq('round_id', roundId)
+        supabase.from('scores').select('participant_id, round_id, points').eq('round_id', roundId),
+        supabase.from('scores').select('participant_id, points')
       ])
 
       if (roundResult.error || !roundResult.data) {
@@ -57,17 +80,11 @@ export default function ScoresAdmin() {
         return
       }
 
-      const participants = participantsResult.data || []
-      const scores = scoresResult.data || []
-
-      const entries: ScoreEntry[] = participants.map(participant => {
-        const existingScore = scores.find(s => s.participant_id === participant.id)
-        return {
-          participant,
-          score: existingScore || null,
-          points: existingScore?.points ?? 0
-        }
-      })
+      const entries = await buildEntries(
+        participantsResult.data || [],
+        scoresResult.data || [],
+        allScoresResult.data || []
+      )
 
       setRound(roundResult.data)
       setScoreEntries(entries)
@@ -82,22 +99,17 @@ export default function ScoresAdmin() {
 
   async function fetchDataSilently() {
     try {
-      const [participantsResult, scoresResult] = await Promise.all([
+      const [participantsResult, scoresResult, allScoresResult] = await Promise.all([
         supabase.from('participants').select('*').order('name'),
-        supabase.from('scores').select('*').eq('round_id', roundId)
+        supabase.from('scores').select('participant_id, round_id, points').eq('round_id', roundId),
+        supabase.from('scores').select('participant_id, points')
       ])
 
-      const participants = participantsResult.data || []
-      const scores = scoresResult.data || []
-
-      const entries: ScoreEntry[] = participants.map(participant => {
-        const existingScore = scores.find(s => s.participant_id === participant.id)
-        return {
-          participant,
-          score: existingScore || null,
-          points: existingScore?.points ?? 0
-        }
-      })
+      const entries = await buildEntries(
+        participantsResult.data || [],
+        scoresResult.data || [],
+        allScoresResult.data || []
+      )
 
       setScoreEntries(entries)
       setLastRefresh(new Date())
@@ -148,13 +160,11 @@ export default function ScoresAdmin() {
         return
       }
 
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('scores')
-          .upsert(update, { onConflict: 'participant_id,round_id' })
+      const { error } = await supabase
+        .from('scores')
+        .upsert(updates, { onConflict: 'participant_id,round_id' })
 
-        if (error) throw error
-      }
+      if (error) throw error
 
       await fetchData()
       setHasChanges(false)
@@ -283,7 +293,7 @@ export default function ScoresAdmin() {
                     {entry.participant.name}
                   </span>
                   <span className="text-gray-500 text-sm">
-                    (<ParticipantTotal participantId={entry.participant.id!} />)
+                    ({entry.totalPoints})
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -324,31 +334,3 @@ export default function ScoresAdmin() {
   )
 }
 
-function ParticipantTotal({ participantId }: { participantId: string }) {
-  const [total, setTotal] = useState<number | null>(null)
-  const supabase = createClient()
-
-  useEffect(() => {
-    fetchTotal()
-  }, [participantId])
-
-  async function fetchTotal() {
-    try {
-      const { data: scores } = await supabase
-        .from('scores')
-        .select('points')
-        .eq('participant_id', participantId)
-
-      const totalPoints = scores?.reduce((sum, score) => sum + score.points, 0) || 0
-      setTotal(totalPoints)
-    } catch (error) {
-      console.error('Error fetching total:', error)
-    }
-  }
-
-  if (total === null) {
-    return <span className="text-gray-400">-</span>
-  }
-
-  return <span>{total}</span>
-}

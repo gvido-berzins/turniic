@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import type { LeaderboardEntry } from '@/lib/schemas'
 import { leaderboardStyles as styles } from '@/lib/leaderboard-styles'
 
@@ -13,6 +13,7 @@ type LeaderboardOption = {
 }
 
 export default function Home() {
+  const supabase = createClient()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [rounds, setRounds] = useState<Array<{id: string, name: string, round_number: number}>>([])
   const [loading, setLoading] = useState(true)
