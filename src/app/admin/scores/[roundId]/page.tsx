@@ -68,17 +68,21 @@ export default function ScoresAdmin() {
 
   async function fetchData() {
     try {
-      const [roundResult, participantsResult, scoresResult, allScoresResult] = await Promise.all([
-        supabase.from('rounds').select('*').eq('id', roundId).single(),
-        supabase.from('participants').select('*').order('name'),
-        supabase.from('scores').select('participant_id, round_id, points').eq('round_id', roundId),
-        supabase.from('scores').select('participant_id, points')
-      ])
+      // Fetch round first to get leaderboard_id
+      const roundResult = await supabase.from('rounds').select('*').eq('id', roundId).single()
 
       if (roundResult.error || !roundResult.data) {
         console.error('Round not found')
         return
       }
+
+      const leaderboardId = roundResult.data.leaderboard_id
+
+      const [participantsResult, scoresResult, allScoresResult] = await Promise.all([
+        supabase.from('participants').select('*').eq('leaderboard_id', leaderboardId).order('name'),
+        supabase.from('scores').select('participant_id, round_id, points').eq('round_id', roundId),
+        supabase.from('scores').select('participant_id, points')
+      ])
 
       const entries = await buildEntries(
         participantsResult.data || [],
@@ -99,8 +103,11 @@ export default function ScoresAdmin() {
 
   async function fetchDataSilently() {
     try {
+      const leaderboardId = round?.leaderboard_id
       const [participantsResult, scoresResult, allScoresResult] = await Promise.all([
-        supabase.from('participants').select('*').order('name'),
+        leaderboardId
+          ? supabase.from('participants').select('*').eq('leaderboard_id', leaderboardId).order('name')
+          : supabase.from('participants').select('*').order('name'),
         supabase.from('scores').select('participant_id, round_id, points').eq('round_id', roundId),
         supabase.from('scores').select('participant_id, points')
       ])

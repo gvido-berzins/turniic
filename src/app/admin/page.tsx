@@ -86,19 +86,32 @@ export default function AdminPage() {
       </div>
 
       <div className="h-48">
-        <Link
-          href="/admin/participants"
-          className="bg-white rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center h-full"
-        >
-          <div className="text-center">
-            <div className="w-20 h-20 bg-red-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
+        {selectedId ? (
+          <Link
+            href={`/admin/participants?leaderboard=${selectedId}`}
+            className="bg-white rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center h-full"
+          >
+            <div className="text-center">
+              <div className="w-20 h-20 bg-red-600 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium text-black">Dalībnieki</h3>
             </div>
-            <h3 className="text-xl font-medium text-black">Dalībnieki</h3>
+          </Link>
+        ) : (
+          <div className="bg-gray-100 rounded-lg flex items-center justify-center h-full opacity-50">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gray-400 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium text-gray-400">Dalībnieki</h3>
+            </div>
           </div>
-        </Link>
+        )}
       </div>
 
       <div className="h-48">

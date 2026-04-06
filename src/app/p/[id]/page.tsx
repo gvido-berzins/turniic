@@ -6,11 +6,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Participant, Round, Score } from '@/lib/schemas'
 
-type LeaderboardOption = {
-  id: string
-  name: string
-}
-
 type ParticipantWithScores = {
   participant: Participant
   scores: Array<Score & { round: Round }>
@@ -24,37 +19,12 @@ export default function ParticipantDetail() {
   const [data, setData] = useState<ParticipantWithScores | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [leaderboards, setLeaderboards] = useState<LeaderboardOption[]>([])
-  const [selectedLeaderboardId, setSelectedLeaderboardId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchLeaderboards()
-  }, [])
-
-  useEffect(() => {
-    if (id && selectedLeaderboardId) {
+    if (id) {
       fetchParticipantDetail()
     }
-  }, [id, selectedLeaderboardId])
-
-  async function fetchLeaderboards() {
-    try {
-      const { data: lbs } = await supabase
-        .from('leaderboards')
-        .select('id, name')
-        .order('created_at', { ascending: false })
-
-      if (lbs && lbs.length > 0) {
-        setLeaderboards(lbs)
-        setSelectedLeaderboardId(lbs[0].id)
-      } else {
-        setLoading(false)
-      }
-    } catch (error) {
-      console.error('Error fetching leaderboards:', error)
-      setLoading(false)
-    }
-  }
+  }, [id])
 
   async function fetchParticipantDetail() {
     try {
@@ -69,11 +39,11 @@ export default function ParticipantDetail() {
         return
       }
 
-      // Get rounds for selected leaderboard
+      // Get rounds for the participant's leaderboard
       const { data: leaderboardRounds } = await supabase
         .from('rounds')
         .select('id')
-        .eq('leaderboard_id', selectedLeaderboardId!)
+        .eq('leaderboard_id', participant.leaderboard_id)
 
       const roundIds = leaderboardRounds?.map(r => r.id) || []
 
@@ -157,24 +127,6 @@ export default function ParticipantDetail() {
           </p>
 
           {/* Leaderboard selector */}
-          {leaderboards.length > 1 && (
-            <div className="mt-3">
-              <select
-                value={selectedLeaderboardId || ''}
-                onChange={(e) => {
-                  setSelectedLeaderboardId(e.target.value)
-                  setLoading(true)
-                }}
-                className="border border-black rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
-              >
-                {leaderboards.map((lb) => (
-                  <option key={lb.id} value={lb.id}>
-                    {lb.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         {data.scores.length === 0 ? (

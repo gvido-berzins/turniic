@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { participantSchema, type Participant } from '@/lib/schemas'
 import { z } from 'zod'
 
 export default function ParticipantsAdmin() {
+  const searchParams = useSearchParams()
+  const leaderboardId = searchParams.get('leaderboard')
+  const [leaderboardName, setLeaderboardName] = useState<string>('')
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -18,21 +22,22 @@ export default function ParticipantsAdmin() {
   const supabase = createClient()
 
   useEffect(() => {
-    fetchParticipants()
-  }, [])
+    if (leaderboardId) {
+      fetchData()
+    }
+  }, [leaderboardId])
 
-  async function fetchParticipants() {
+  async function fetchData() {
     try {
-      const { data } = await supabase
-        .from('participants')
-        .select('*')
-        .order('name')
+      const [lbResult, participantsResult] = await Promise.all([
+        supabase.from('leaderboards').select('name').eq('id', leaderboardId!).single(),
+        supabase.from('participants').select('*').eq('leaderboard_id', leaderboardId!).order('name'),
+      ])
 
-      if (data) {
-        setParticipants(data)
-      }
+      if (lbResult.data) setLeaderboardName(lbResult.data.name)
+      if (participantsResult.data) setParticipants(participantsResult.data)
     } catch (error) {
-      console.error('Error fetching participants:', error)
+      console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
     }
@@ -58,7 +63,7 @@ export default function ParticipantsAdmin() {
     setErrors([])
 
     try {
-      const validatedData = participantSchema.omit({ id: true, created_at: true }).parse(formData)
+      const validatedData = participantSchema.omit({ id: true, created_at: true, leaderboard_id: true }).parse(formData)
 
       if (editingParticipant) {
         const { error } = await supabase
@@ -70,12 +75,12 @@ export default function ParticipantsAdmin() {
       } else {
         const { error } = await supabase
           .from('participants')
-          .insert([validatedData])
+          .insert([{ ...validatedData, leaderboard_id: leaderboardId }])
 
         if (error) throw error
       }
 
-      await fetchParticipants()
+      await fetchData()
       closeForm()
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -102,11 +107,22 @@ export default function ParticipantsAdmin() {
 
       if (error) throw error
 
-      await fetchParticipants()
+      await fetchData()
     } catch (error) {
       console.error('Error deleting participant:', error)
       alert('Neizdevās dzēst dalībnieku')
     }
+  }
+
+  if (!leaderboardId) {
+    return (
+      <div className="p-4 md:p-8 text-center">
+        <p className="text-black text-lg mb-4">Nav izvēlēta tabula</p>
+        <Link href="/admin" className="text-red-600 hover:underline">
+          ← Atpakaļ
+        </Link>
+      </div>
+    )
   }
 
   if (loading) {
@@ -121,8 +137,11 @@ export default function ParticipantsAdmin() {
     <div className="p-4 md:p-8 min-h-screen bg-gray-50">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-black mb-2">Dalībnieki</h2>
-          <Link 
+          <h2 className="text-2xl font-bold text-black mb-1">Dalībnieki</h2>
+          {leaderboardName && (
+            <p className="text-gray-500 text-sm mb-2">{leaderboardName}</p>
+          )}
+          <Link
             href="/admin"
             className="text-red-600 hover:underline"
           >
@@ -156,10 +175,10 @@ export default function ParticipantsAdmin() {
             onChange={(e) => setNameFilter(e.target.value)}
             className="w-full border border-black rounded-lg px-4 py-3 pr-10 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
           />
-          <svg 
+          <svg
             className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-            fill="none" 
-            stroke="currentColor" 
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -188,7 +207,7 @@ export default function ParticipantsAdmin() {
       ) : (
         <div className="space-y-2">
           {participants
-            .filter(participant => 
+            .filter(participant =>
               participant.name.toLowerCase().includes(nameFilter.toLowerCase())
             )
             .map((participant) => (

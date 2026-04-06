@@ -105,6 +105,7 @@ export default function Home() {
       const { data: participants } = await supabase
         .from('participants')
         .select('id, name')
+        .eq('leaderboard_id', currentLeaderboardId)
 
       const { data: roundsData } = await supabase
         .from('rounds')
@@ -135,18 +136,7 @@ export default function Home() {
 
       setRounds(roundsData)
 
-      // Only include participants that have scores in this leaderboard
-      const participantIdsWithScores = new Set(scores.map(s => s.participant_id))
-      const relevantParticipants = participantIdsWithScores.size > 0
-        ? participants.filter(p => participantIdsWithScores.has(p.id))
-        : [] // Show no participants if no scores exist yet
-
-      // If there are rounds but no scores yet, show all participants
-      const participantsToShow = roundsData.length > 0 && relevantParticipants.length === 0
-        ? participants
-        : relevantParticipants
-
-      const leaderboardData: LeaderboardEntry[] = participantsToShow.map(participant => {
+      const leaderboardData: LeaderboardEntry[] = participants.map(participant => {
         const participantScores = scores.filter(s => s.participant_id === participant.id)
         const total_points = participantScores.reduce((sum, score) => sum + score.points, 0)
 

@@ -1,23 +1,23 @@
 -- Seed dummy data for TURNIIC tournament app
--- Run this in Supabase SQL Editor
+-- Run this in Supabase SQL Editor or via: npm run db:seed
 
 -- Create a leaderboard
 INSERT INTO leaderboards (id, name, refresh_interval_ms) VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Demo Tournament', 1000)
 ON CONFLICT (id) DO NOTHING;
 
--- Create participants
-INSERT INTO participants (id, name) VALUES
-  ('bbbbbbbb-0000-0000-0000-000000000001', 'Anna'),
-  ('bbbbbbbb-0000-0000-0000-000000000002', 'Jānis'),
-  ('bbbbbbbb-0000-0000-0000-000000000003', 'Līga'),
-  ('bbbbbbbb-0000-0000-0000-000000000004', 'Mārtiņš'),
-  ('bbbbbbbb-0000-0000-0000-000000000005', 'Ieva'),
-  ('bbbbbbbb-0000-0000-0000-000000000006', 'Kārlis'),
-  ('bbbbbbbb-0000-0000-0000-000000000007', 'Dace'),
-  ('bbbbbbbb-0000-0000-0000-000000000008', 'Edgars'),
-  ('bbbbbbbb-0000-0000-0000-000000000009', 'Zane'),
-  ('bbbbbbbb-0000-0000-0000-000000000010', 'Rihards')
+-- Create participants (scoped to leaderboard)
+INSERT INTO participants (id, name, leaderboard_id) VALUES
+  ('bbbbbbbb-0000-0000-0000-000000000001', 'Anna', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000002', 'Jānis', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000003', 'Līga', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000004', 'Mārtiņš', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000005', 'Ieva', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000006', 'Kārlis', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000007', 'Dace', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000008', 'Edgars', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000009', 'Zane', 'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('bbbbbbbb-0000-0000-0000-000000000010', 'Rihards', 'aaaaaaaa-0000-0000-0000-000000000001')
 ON CONFLICT (id) DO NOTHING;
 
 -- Create rounds
@@ -27,7 +27,7 @@ INSERT INTO rounds (id, name, round_number, leaderboard_id) VALUES
   ('cccccccc-0000-0000-0000-000000000003', 'Stafete', 3, 'aaaaaaaa-0000-0000-0000-000000000001')
 ON CONFLICT (id) DO NOTHING;
 
--- Create scores (varied to make the leaderboard interesting)
+-- Create scores
 INSERT INTO scores (participant_id, round_id, points) VALUES
   -- Round 1
   ('bbbbbbbb-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001', 15),
