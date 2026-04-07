@@ -136,6 +136,31 @@ export default function LeaderboardsAdmin() {
     }
   }
 
+  async function handleSetDefault(leaderboard: Leaderboard) {
+    try {
+      // First, set all leaderboards to is_default = false
+      const { error: updateAllError } = await supabase
+        .from('leaderboards')
+        .update({ is_default: false })
+        .neq('id', leaderboard.id)
+
+      if (updateAllError) throw updateAllError
+
+      // Then set the selected leaderboard to is_default = true
+      const { error: updateSelectedError } = await supabase
+        .from('leaderboards')
+        .update({ is_default: true })
+        .eq('id', leaderboard.id)
+
+      if (updateSelectedError) throw updateSelectedError
+
+      await fetchLeaderboards()
+    } catch (error) {
+      console.error('Error setting default leaderboard:', error)
+      alert('Failed to set default leaderboard')
+    }
+  }
+
   function formatDate(dateStr: string | undefined) {
     if (!dateStr) return ''
     return new Date(dateStr).toLocaleDateString('lv-LV', {
@@ -201,7 +226,17 @@ export default function LeaderboardsAdmin() {
                     className="flex-1 hover:text-red-600 transition-colors"
                   >
                     <div>
-                      <h3 className="text-black font-bold text-lg">{leaderboard.name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-black font-bold text-lg">{leaderboard.name}</h3>
+                        {leaderboard.is_default && (
+                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            Noklusētā
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-4 text-sm text-gray-500 mt-1">
                         <span>{formatDate(leaderboard.created_at)}</span>
                         {stats && (
@@ -215,6 +250,17 @@ export default function LeaderboardsAdmin() {
                     </div>
                   </Link>
                   <div className="flex gap-2 ml-4">
+                    {!leaderboard.is_default && (
+                      <button
+                        onClick={() => handleSetDefault(leaderboard)}
+                        className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition-colors"
+                        title="Uzstād&#299;t k&#257; noklusēto"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      </button>
+                    )}
                     <button
                       onClick={() => openForm(leaderboard)}
                       className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition-colors"

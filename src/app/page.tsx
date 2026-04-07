@@ -50,13 +50,13 @@ function HomeContent() {
     try {
       const { data } = await supabase
         .from('leaderboards')
-        .select('id, name, refresh_interval_ms, created_at')
+        .select('id, name, refresh_interval_ms, created_at, is_default')
         .order('created_at', { ascending: false })
 
       if (data && data.length > 0) {
         setLeaderboards(data)
 
-        // Check for leaderboard query param and use if valid
+        // Check for leaderboard query param first
         const paramId = searchParams.get('leaderboard')
         if (paramId && data.some(lb => lb.id === paramId)) {
           const lb = data.find(l => l.id === paramId)!
@@ -64,8 +64,8 @@ function HomeContent() {
           selectedLeaderboardIdRef.current = paramId
           setRefreshInterval(lb.refresh_interval_ms)
         } else {
-          // Select the most recent leaderboard by default
-          const defaultLb = data[0]
+          // Look for default leaderboard
+          const defaultLb = data.find(lb => lb.is_default) || data[0]
           setSelectedLeaderboardId(defaultLb.id)
           selectedLeaderboardIdRef.current = defaultLb.id
           setRefreshInterval(defaultLb.refresh_interval_ms)

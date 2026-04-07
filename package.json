@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "npx supabase db query --linked --file seed.sql --workdir supabase",
+    "db:reset": "npx supabase db query --linked --file reset.sql --workdir supabase",
+    "db:migrate": "npx supabase db push --workdir supabase"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
