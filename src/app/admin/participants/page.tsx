@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { participantSchema, type Participant } from '@/lib/schemas'
@@ -9,6 +9,7 @@ import { z } from 'zod'
 
 export default function ParticipantsAdmin() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const leaderboardId = searchParams.get('leaderboard')
   const [leaderboardName, setLeaderboardName] = useState<string>('')
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -24,8 +25,24 @@ export default function ParticipantsAdmin() {
   useEffect(() => {
     if (leaderboardId) {
       fetchData()
+    } else {
+      redirectToDefault()
     }
   }, [leaderboardId])
+
+  async function redirectToDefault() {
+    const { data } = await supabase
+      .from('leaderboards')
+      .select('id, is_default')
+      .order('created_at', { ascending: false })
+
+    if (data && data.length > 0) {
+      const defaultLb = data.find(lb => lb.is_default) || data[0]
+      router.replace(`/admin/participants?leaderboard=${defaultLb.id}`)
+    } else {
+      setLoading(false)
+    }
+  }
 
   async function fetchData() {
     try {
@@ -112,17 +129,6 @@ export default function ParticipantsAdmin() {
       console.error('Error deleting participant:', error)
       alert('Neizdevās dzēst dalībnieku')
     }
-  }
-
-  if (!leaderboardId) {
-    return (
-      <div className="p-4 md:p-8 text-center">
-        <p className="text-black text-lg mb-4">Nav izvēlēta tabula</p>
-        <Link href="/admin" className="text-red-600 hover:underline">
-          ← Atpakaļ
-        </Link>
-      </div>
-    )
   }
 
   if (loading) {

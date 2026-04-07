@@ -172,7 +172,7 @@ export default function LeaderboardDetail() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-black mb-4">Tabula nav atrasta</h2>
           <Link href="/admin/leaderboards" className="text-red-600 hover:underline">
-            &larr; Atpaka&#316; uz tabul&#257;m
+            ← Atpakaļ uz tabulām
           </Link>
         </div>
       </div>
@@ -186,14 +186,14 @@ export default function LeaderboardDetail() {
           href="/admin/leaderboards"
           className="text-red-600 hover:underline"
         >
-          &larr; Atpaka&#316; uz tabul&#257;m
+          ← Atpakaļ uz tabulām
         </Link>
         <h2 className="text-2xl font-bold text-black mt-2">{leaderboard.name}</h2>
       </div>
 
       {/* Settings Section */}
       <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
-        <h3 className="text-lg font-bold text-black mb-4">Iestat&#299;jumi</h3>
+        <h3 className="text-lg font-bold text-black mb-4">Iestatījumi</h3>
 
         {errors.length > 0 && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -222,7 +222,7 @@ export default function LeaderboardDetail() {
             </div>
             <div>
               <label htmlFor="settings-refresh" className="block text-black font-medium mb-2">
-                Atjauno&#353;anas interv&#257;ls (sekund&#275;s)
+                Atjaunošanas intervāls (sekundēs)
               </label>
               <input
                 type="number"
@@ -238,7 +238,7 @@ export default function LeaderboardDetail() {
                 step="0.5"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Cik bieži publik&#257; tabula atjaunin&#257;s datus
+                Cik bieži publiskā tabula atjauninās datus
               </p>
             </div>
           </div>
@@ -247,7 +247,7 @@ export default function LeaderboardDetail() {
             disabled={savingSettings}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            {savingSettings ? 'Saglab&#257;...' : settingsSaved ? 'Saglab&#257;ts!' : 'Saglab&#257;t iestat&#299;jumus'}
+            {savingSettings ? 'Saglabā...' : settingsSaved ? 'Saglabāts!' : 'Saglabāt iestatījumus'}
           </button>
         </form>
       </div>
@@ -303,7 +303,7 @@ export default function LeaderboardDetail() {
                     openRoundForm(round)
                   }}
                   className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition-colors"
-                  title="Redi&#291;&#275;t"
+                  title="Rediģēt"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -316,7 +316,7 @@ export default function LeaderboardDetail() {
                     handleDeleteRound(round)
                   }}
                   className="bg-red-600 text-white p-2 rounded hover:bg-red-700 transition-colors"
-                  title="Dz&#275;st"
+                  title="Dzēst"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -333,7 +333,7 @@ export default function LeaderboardDetail() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-bold text-black mb-4">
-              {editingRound ? 'Redi&#291;&#275;t raundi' : 'Pievienot raundi'}
+              {editingRound ? 'Rediģēt raundi' : 'Pievienot raundi'}
             </h3>
 
             <form onSubmit={handleRoundSubmit}>
@@ -354,7 +354,7 @@ export default function LeaderboardDetail() {
 
               <div className="mb-4">
                 <label htmlFor="round_name" className="block text-black font-medium mb-2">
-                  Raunda nosaukums (Neoblig&#257;ti)
+                  Raunda nosaukums (Neobligāti)
                 </label>
                 <input
                   type="text"
@@ -362,7 +362,7 @@ export default function LeaderboardDetail() {
                   value={roundFormData.name}
                   onChange={(e) => setRoundFormData({ ...roundFormData, name: e.target.value })}
                   className="w-full border border-black rounded-lg px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-red-600"
-                  placeholder="Ievadiet raunda nosaukumu (neoblig&#257;ti)"
+                  placeholder="Ievadiet raunda nosaukumu (neobligāti)"
                 />
               </div>
 
@@ -380,7 +380,7 @@ export default function LeaderboardDetail() {
                   disabled={submitting}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Saglab&#257;...' : editingRound ? 'Atjaunin&#257;t' : 'Pievienot'}
+                  {submitting ? 'Saglabā...' : editingRound ? 'Atjaunināt' : 'Pievienot'}
                 </button>
               </div>
             </form>

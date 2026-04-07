@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 type LeaderboardOption = {
   id: string
   name: string
+  is_default: boolean
 }
 
 export default function AdminPage() {
@@ -28,7 +29,8 @@ export default function AdminPage() {
       if (paramId && leaderboards.some(lb => lb.id === paramId)) {
         setSelectedId(paramId)
       } else if (!paramId) {
-        setSelectedId(leaderboards[0].id)
+        const defaultLb = leaderboards.find(lb => lb.is_default) || leaderboards[0]
+        setSelectedId(defaultLb.id)
       }
     }
   }, [leaderboards, searchParams])
@@ -37,7 +39,7 @@ export default function AdminPage() {
     try {
       const { data } = await supabase
         .from('leaderboards')
-        .select('id, name')
+        .select('id, name, is_default')
         .order('created_at', { ascending: false })
 
       if (data && data.length > 0) {
@@ -50,9 +52,19 @@ export default function AdminPage() {
     }
   }
 
-  function handleLeaderboardChange(id: string) {
+  async function handleLeaderboardChange(id: string) {
     setSelectedId(id)
     router.push(`/admin?leaderboard=${id}`)
+
+    // Persist as default leaderboard for public display
+    await supabase
+      .from('leaderboards')
+      .update({ is_default: false })
+      .neq('id', id)
+    await supabase
+      .from('leaderboards')
+      .update({ is_default: true })
+      .eq('id', id)
   }
 
   return (
