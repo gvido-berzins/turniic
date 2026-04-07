@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { LeaderboardEntry } from '@/lib/schemas'
 import { leaderboardStyles as styles } from '@/lib/leaderboard-styles'
@@ -12,8 +13,9 @@ type LeaderboardOption = {
   created_at: string
 }
 
-export default function Home() {
+function HomeContent() {
   const supabase = createClient()
+  const searchParams = useSearchParams()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [rounds, setRounds] = useState<Array<{id: string, name: string, round_number: number}>>([])
   const [loading, setLoading] = useState(true)
@@ -44,6 +46,19 @@ export default function Home() {
     fetchLeaderboards()
   }, [])
 
+  // Check for leaderboard query param and use if valid
+  useEffect(() => {
+    if (leaderboards.length > 0) {
+      const paramId = searchParams.get('leaderboard')
+      if (paramId && leaderboards.some(lb => lb.id === paramId)) {
+        const lb = leaderboards.find(l => l.id === paramId)!
+        setSelectedLeaderboardId(paramId)
+        selectedLeaderboardIdRef.current = paramId
+        setRefreshInterval(lb.refresh_interval_ms)
+      }
+    }
+  }, [leaderboards, searchParams])
+
   async function fetchLeaderboards() {
     try {
       const { data } = await supabase
@@ -53,7 +68,7 @@ export default function Home() {
 
       if (data && data.length > 0) {
         setLeaderboards(data)
-        // Select the most recent leaderboard by default
+        // Select the most recent leaderboard by default (unless query param overrides)
         const defaultLb = data[0]
         setSelectedLeaderboardId(defaultLb.id)
         selectedLeaderboardIdRef.current = defaultLb.id
@@ -426,5 +441,13 @@ export default function Home() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   )
 }

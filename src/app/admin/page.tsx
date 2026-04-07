@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,6 +11,8 @@ type LeaderboardOption = {
 }
 
 export default function AdminPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [leaderboards, setLeaderboards] = useState<LeaderboardOption[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -18,6 +21,17 @@ export default function AdminPage() {
   useEffect(() => {
     fetchLeaderboards()
   }, [])
+
+  useEffect(() => {
+    if (leaderboards.length > 0) {
+      const paramId = searchParams.get('leaderboard')
+      if (paramId && leaderboards.some(lb => lb.id === paramId)) {
+        setSelectedId(paramId)
+      } else if (!paramId) {
+        setSelectedId(leaderboards[0].id)
+      }
+    }
+  }, [leaderboards, searchParams])
 
   async function fetchLeaderboards() {
     try {
@@ -28,7 +42,6 @@ export default function AdminPage() {
 
       if (data && data.length > 0) {
         setLeaderboards(data)
-        setSelectedId(data[0].id)
       }
     } catch (error) {
       console.error('Error fetching leaderboards:', error)
@@ -37,11 +50,16 @@ export default function AdminPage() {
     }
   }
 
+  function handleLeaderboardChange(id: string) {
+    setSelectedId(id)
+    router.push(`/admin?leaderboard=${id}`)
+  }
+
   return (
     <div className="h-screen flex flex-col justify-center px-4 gap-8">
       <div className="absolute top-4 right-4">
         <Link
-          href="/"
+          href={selectedId ? `/?leaderboard=${selectedId}` : '/'}
           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
         >
           Tabula
@@ -66,7 +84,7 @@ export default function AdminPage() {
           <div className="text-center">
             <select
               value={selectedId || ''}
-              onChange={(e) => setSelectedId(e.target.value)}
+              onChange={(e) => handleLeaderboardChange(e.target.value)}
               className="w-full border border-black rounded-lg px-4 py-3 text-black text-lg font-medium focus:outline-none focus:ring-2 focus:ring-red-600 bg-white"
             >
               {leaderboards.map((lb) => (
