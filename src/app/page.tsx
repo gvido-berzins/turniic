@@ -313,23 +313,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Leaderboard selector */}
-        {leaderboards.length > 1 && (
-          <div className="flex justify-center mb-3 flex-shrink-0">
-            <select
-              value={selectedLeaderboardId || ''}
-              onChange={(e) => handleLeaderboardChange(e.target.value)}
-              className="bg-gray-800 text-white border border-gray-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-600"
-            >
-              {leaderboards.map((lb) => (
-                <option key={lb.id} value={lb.id}>
-                  {lb.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {leaderboard.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <p className={`${styles.emptyState.textColor} ${styles.emptyState.textSize}`}>No participants yet</p>
