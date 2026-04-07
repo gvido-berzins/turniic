@@ -46,19 +46,6 @@ function HomeContent() {
     fetchLeaderboards()
   }, [])
 
-  // Check for leaderboard query param and use if valid
-  useEffect(() => {
-    if (leaderboards.length > 0) {
-      const paramId = searchParams.get('leaderboard')
-      if (paramId && leaderboards.some(lb => lb.id === paramId)) {
-        const lb = leaderboards.find(l => l.id === paramId)!
-        setSelectedLeaderboardId(paramId)
-        selectedLeaderboardIdRef.current = paramId
-        setRefreshInterval(lb.refresh_interval_ms)
-      }
-    }
-  }, [leaderboards, searchParams])
-
   async function fetchLeaderboards() {
     try {
       const { data } = await supabase
@@ -68,11 +55,21 @@ function HomeContent() {
 
       if (data && data.length > 0) {
         setLeaderboards(data)
-        // Select the most recent leaderboard by default (unless query param overrides)
-        const defaultLb = data[0]
-        setSelectedLeaderboardId(defaultLb.id)
-        selectedLeaderboardIdRef.current = defaultLb.id
-        setRefreshInterval(defaultLb.refresh_interval_ms)
+
+        // Check for leaderboard query param and use if valid
+        const paramId = searchParams.get('leaderboard')
+        if (paramId && data.some(lb => lb.id === paramId)) {
+          const lb = data.find(l => l.id === paramId)!
+          setSelectedLeaderboardId(paramId)
+          selectedLeaderboardIdRef.current = paramId
+          setRefreshInterval(lb.refresh_interval_ms)
+        } else {
+          // Select the most recent leaderboard by default
+          const defaultLb = data[0]
+          setSelectedLeaderboardId(defaultLb.id)
+          selectedLeaderboardIdRef.current = defaultLb.id
+          setRefreshInterval(defaultLb.refresh_interval_ms)
+        }
       } else {
         setLoading(false)
       }
