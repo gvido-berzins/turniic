@@ -210,8 +210,8 @@ export default function ScoresAdmin() {
   }
 
   return (
-    <div className="p-4 md:p-8 min-h-screen bg-gray-50">
-      <div className="sticky top-0 z-10 bg-gray-50 pb-4 pt-2">
+    <div className="pt-20 p-4 md:p-8 min-h-screen bg-gray-50">
+      <div className="fixed top-0 left-0 right-0 z-10 bg-gray-50 px-4 md:px-8 pb-3 pt-2 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-black mb-1">
