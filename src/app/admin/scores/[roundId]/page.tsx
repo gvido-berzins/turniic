@@ -211,8 +211,8 @@ export default function ScoresAdmin() {
 
   return (
     <div className="p-4 md:p-8 min-h-screen bg-gray-50">
-      <div className="mb-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="sticky top-0 z-10 bg-gray-50 pb-4 pt-2">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-black mb-1">
               {round.round_number}{round.name ? ` (${round.name})` : ''}
@@ -227,7 +227,7 @@ export default function ScoresAdmin() {
           <button
             onClick={saveScores}
             disabled={!hasChanges || saving}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full text-lg"
+            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shrink-0"
           >
             {saving ? 'Saglabā...' : 'Saglabāt'}
           </button>
