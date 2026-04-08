@@ -171,8 +171,8 @@ export default function LeaderboardDetail() {
       <div className="p-4 md:p-8">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-black mb-4">Tabula nav atrasta</h2>
-          <Link href="/admin/leaderboards" className="text-red-600 hover:underline">
-            ← Atpakaļ uz tabulām
+          <Link href={`/admin?leaderboard=${leaderboardId}`} className="text-red-600 hover:underline">
+            ← Atpakaļ
           </Link>
         </div>
       </div>
@@ -183,10 +183,10 @@ export default function LeaderboardDetail() {
     <div className="p-4 md:p-8 min-h-screen bg-gray-50">
       <div className="mb-6">
         <Link
-          href="/admin/leaderboards"
+          href={`/admin?leaderboard=${leaderboardId}`}
           className="text-red-600 hover:underline"
         >
-          ← Atpakaļ uz tabulām
+          ← Atpakaļ
         </Link>
         <h2 className="text-2xl font-bold text-black mt-2">{leaderboard.name}</h2>
       </div>

@@ -218,10 +218,10 @@ export default function ScoresAdmin() {
               {round.round_number}{round.name ? ` (${round.name})` : ''}
             </h2>
             <Link
-              href={round.leaderboard_id ? `/admin/leaderboards/${round.leaderboard_id}` : '/admin/leaderboards'}
+              href={round.leaderboard_id ? `/admin/leaderboards/${round.leaderboard_id}` : '/admin'}
               className="text-red-600 hover:underline text-sm md:text-base"
             >
-              &larr; Atpaka&#316;
+              ← Atpakaļ
             </Link>
           </div>
           <button
