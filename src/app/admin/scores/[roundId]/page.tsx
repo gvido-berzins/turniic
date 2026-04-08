@@ -210,28 +210,30 @@ export default function ScoresAdmin() {
   }
 
   return (
-    <div className="pt-20 p-4 md:p-8 min-h-screen bg-gray-50">
-      <div className="fixed top-0 left-0 right-0 z-10 bg-gray-50 px-4 md:px-8 pb-3 pt-2 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl md:text-2xl font-bold text-black mb-1">
-              {round.round_number}{round.name ? ` (${round.name})` : ''}
-            </h2>
-            <Link
-              href={round.leaderboard_id ? `/admin/leaderboards/${round.leaderboard_id}` : '/admin'}
-              className="text-red-600 hover:underline text-sm md:text-base"
-            >
-              ← Atpakaļ
-            </Link>
-          </div>
-          <button
-            onClick={saveScores}
-            disabled={!hasChanges || saving}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg shrink-0"
+    <div className="p-4 pb-24 md:p-8 md:pb-24 min-h-screen bg-gray-50">
+      <div className="mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold text-black mb-1">
+            {round.round_number}{round.name ? ` (${round.name})` : ''}
+          </h2>
+          <Link
+            href={round.leaderboard_id ? `/admin/leaderboards/${round.leaderboard_id}` : '/admin'}
+            className="text-red-600 hover:underline text-sm md:text-base"
           >
-            {saving ? 'Saglabā...' : 'Saglabāt'}
-          </button>
+            ← Atpakaļ
+          </Link>
         </div>
+      </div>
+
+      {/* Fixed bottom save bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        <button
+          onClick={saveScores}
+          disabled={!hasChanges || saving}
+          className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+        >
+          {saving ? 'Saglabā...' : 'Saglabāt'}
+        </button>
       </div>
 
       {errors.length > 0 && (
