@@ -104,10 +104,10 @@ export default function ScoresAdmin() {
   async function fetchDataSilently() {
     try {
       const leaderboardId = round?.leaderboard_id
+      if (!leaderboardId) return
+
       const [participantsResult, scoresResult, allScoresResult] = await Promise.all([
-        leaderboardId
-          ? supabase.from('participants').select('*').eq('leaderboard_id', leaderboardId).order('name')
-          : supabase.from('participants').select('*').order('name'),
+        supabase.from('participants').select('*').eq('leaderboard_id', leaderboardId).order('name'),
         supabase.from('scores').select('participant_id, round_id, points').eq('round_id', roundId),
         supabase.from('scores').select('participant_id, points')
       ])
