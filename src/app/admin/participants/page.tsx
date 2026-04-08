@@ -22,11 +22,17 @@ export default function ParticipantsAdmin() {
   const [nameFilter, setNameFilter] = useState('')
   const supabase = createClient()
 
+  // Redirect to default leaderboard on mount if no param present
+  useEffect(() => {
+    if (!leaderboardId) {
+      redirectToDefault()
+    }
+  }, [])
+
+  // Fetch data whenever the leaderboard ID is available
   useEffect(() => {
     if (leaderboardId) {
       fetchData()
-    } else {
-      redirectToDefault()
     }
   }, [leaderboardId])
 
