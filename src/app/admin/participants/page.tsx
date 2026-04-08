@@ -141,7 +141,7 @@ export default function ParticipantsAdmin() {
 
   return (
     <div className="p-4 md:p-8 min-h-screen bg-gray-50">
-      <div className="flex items-center justify-between mb-6">
+      <div className="sticky top-0 z-10 bg-gray-50 pb-4 pt-2 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-black mb-1">Dalībnieki</h2>
           {leaderboardName && (
@@ -156,7 +156,7 @@ export default function ParticipantsAdmin() {
         </div>
         <button
           onClick={() => openForm()}
-          className="bg-red-600 text-white w-12 h-12 rounded-full font-medium hover:bg-red-700 transition-colors flex items-center justify-center shadow-lg"
+          className="bg-red-600 text-white w-12 h-12 rounded-full font-medium hover:bg-red-700 transition-colors flex items-center justify-center shadow-lg shrink-0"
           title="Pievienot dalībnieku"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
