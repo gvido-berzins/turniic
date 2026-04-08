@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -26,7 +26,27 @@ export default function ScoresAdmin() {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [nameFilter, setNameFilter] = useState('')
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  const saveBarRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  // Track visual viewport to keep save button above the keyboard
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    function onViewportChange() {
+      const offset = window.innerHeight - (vv!.offsetTop + vv!.height)
+      setKeyboardOffset(Math.max(0, offset))
+    }
+
+    vv.addEventListener('resize', onViewportChange)
+    vv.addEventListener('scroll', onViewportChange)
+    return () => {
+      vv.removeEventListener('resize', onViewportChange)
+      vv.removeEventListener('scroll', onViewportChange)
+    }
+  }, [])
 
   useEffect(() => {
     if (roundId) {
@@ -225,8 +245,12 @@ export default function ScoresAdmin() {
         </div>
       </div>
 
-      {/* Fixed bottom save bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+      {/* Fixed bottom save bar — uses visualViewport to stay above keyboard */}
+      <div
+        ref={saveBarRef}
+        className="fixed left-0 right-0 z-10 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]"
+        style={{ bottom: `${keyboardOffset}px` }}
+      >
         <button
           onClick={saveScores}
           disabled={!hasChanges || saving}
