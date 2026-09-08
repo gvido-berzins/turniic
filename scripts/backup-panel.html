@@ -37,6 +37,14 @@
   .badge.warning { background: #f2b705; color: #111; }
   .actions { display: flex; gap: 0.5rem; }
   .preview { margin-top: 0.75rem; font-size: 0.85rem; background: #fafafa; border-radius: 4px; padding: 0.75rem; max-height: 300px; overflow: auto; }
+  .table-block { margin-bottom: 1rem; }
+  .table-block:last-child { margin-bottom: 0; }
+  .table-block h3 { margin: 0 0 0.4rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #333; }
+  .table-scroll { overflow-x: auto; }
+  .data-table { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+  .data-table th, .data-table td { border: 1px solid #e2e2e2; padding: 0.3rem 0.5rem; text-align: left; white-space: nowrap; }
+  .data-table th { background: #f0f0f0; position: sticky; top: 0; }
+  .data-table tbody tr:nth-child(even) { background: #fafafa; }
   .restore-confirm { margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center; }
   .restore-confirm input { border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem; }
   #error-banner { background: #c1121f; color: #fff; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
@@ -185,6 +193,19 @@ function renderBackups(backups) {
   }).join('')
 }
 
+function renderDataTable(rows) {
+  if (!rows || rows.length === 0) return '<p class="empty">No rows.</p>'
+  const columns = Object.keys(rows[0])
+  const thead = '<tr>' + columns.map(function (c) { return '<th>' + escapeHtml(c) + '</th>' }).join('') + '</tr>'
+  const tbody = rows.map(function (row) {
+    return '<tr>' + columns.map(function (c) {
+      const value = row[c]
+      return '<td>' + escapeHtml(value === null || value === undefined ? '' : String(value)) + '</td>'
+    }).join('') + '</tr>'
+  }).join('')
+  return '<div class="table-scroll"><table class="data-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></div>'
+}
+
 async function togglePreview(file) {
   const el = document.getElementById('preview-' + file)
   if (!el.hidden) { el.hidden = true; return }
@@ -194,7 +215,7 @@ async function togglePreview(file) {
     const res = await fetch('/api/backups/' + encodeURIComponent(file))
     const backup = await res.json()
     el.innerHTML = Object.entries(backup.tables).map(function (e) {
-      return '<strong>' + e[0] + ' (' + e[1].length + ')</strong><pre>' + escapeHtml(JSON.stringify(e[1], null, 2)) + '</pre>'
+      return '<div class="table-block"><h3>' + escapeHtml(e[0]) + ' (' + e[1].length + ')</h3>' + renderDataTable(e[1]) + '</div>'
     }).join('')
   } catch (err) {
     el.textContent = 'Failed to load preview: ' + err.message
