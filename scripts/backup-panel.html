@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Turniic — Local Ops Panel</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #ffffff;
+    color: #111111;
+  }
+  header { padding: 1rem 1.5rem; border-bottom: 2px solid #111111; }
+  h1 { margin: 0; font-size: 1.25rem; }
+  main { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+  section { margin-bottom: 2.5rem; }
+  section h2 {
+    font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid #ddd; padding-bottom: 0.5rem;
+  }
+  button {
+    background: #c1121f; color: #ffffff; border: none;
+    padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.9rem;
+  }
+  button:disabled { background: #e0a3a8; cursor: not-allowed; }
+  button.secondary { background: #111111; }
+  .row { border: 1px solid #e2e2e2; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
+  .row-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .meta { color: #555; font-size: 0.85rem; }
+  .badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  }
+  .badge.error, .badge.fatal { background: #c1121f; color: #fff; }
+  .badge.warning { background: #f2b705; color: #111; }
+  .actions { display: flex; gap: 0.5rem; }
+  .preview { margin-top: 0.75rem; font-size: 0.85rem; background: #fafafa; border-radius: 4px; padding: 0.75rem; max-height: 300px; overflow: auto; }
+  .restore-confirm { margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center; }
+  .restore-confirm input { border: 1px solid #ccc; border-radius: 4px; padding: 0.4rem; }
+  #error-banner { background: #c1121f; color: #fff; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
+  #error-banner[hidden] { display: none; }
+  .empty { color: #888; font-size: 0.9rem; }
+  .alert-message { white-space: pre-wrap; word-break: break-word; }
+</style>
+</head>
+<body>
+<header><h1>Turniic — Local Ops Panel</h1></header>
+<main>
+  <div id="error-banner" hidden></div>
+
+  <section id="alerts-section">
+    <h2>Production Alerts</h2>
+    <div id="alerts-status" class="meta"></div>
+    <div id="alerts-list"></div>
+  </section>
+
+  <section id="backups-section">
+    <div class="row-header">
+      <h2 style="border:none;margin:0;">Backups</h2>
+      <button id="backup-now">Backup now</button>
+    </div>
+    <div id="backups-list"></div>
+  </section>
+</main>
+
+<script>
+// All dynamic, non-enum text inserted into innerHTML below (log messages,
+// request paths, backup row counts, JSON previews) goes through escapeHtml()
+// first. The only unescaped interpolations are values this code itself
+// already constrains to a small fixed set before they reach here: log
+// `level` (checked against ALERT_LEVELS in vercel-alerts.mjs before it's
+// ever stored) and backup `file` names (checked against a strict filename
+// regex in backups-store.mjs before the server will read/return them).
+
+function showError(message) {
+  const banner = document.getElementById('error-banner')
+  banner.textContent = message
+  banner.hidden = false
+}
+
+function clearError() {
+  document.getElementById('error-banner').hidden = true
+}
+
+function fmtTime(isoOrMs) {
+  return new Date(isoOrMs).toLocaleString()
+}
+
+function fmtBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div')
+  div.textContent = str || ''
+  return div.innerHTML
+}
+
+// ---------- Alerts ----------
+
+async function loadAlerts() {
+  try {
+    const res = await fetch('/api/alerts')
+    renderAlerts(await res.json())
+  } catch (err) {
+    document.getElementById('alerts-status').textContent = 'Failed to reach panel server: ' + err.message
+  }
+}
+
+function renderAlerts(state) {
+  const statusEl = document.getElementById('alerts-status')
+  const listEl = document.getElementById('alerts-list')
+
+  if (!state.configured) {
+    statusEl.textContent = 'Not configured — set VERCEL_TOKEN and VERCEL_PROJECT_ID in .env.local to enable.'
+    listEl.innerHTML = ''
+    return
+  }
+
+  if (state.error) statusEl.textContent = 'Error: ' + state.error
+  else if (state.watching) statusEl.textContent = 'Watching production deployment ' + state.watching
+  else statusEl.textContent = 'Connecting…'
+
+  if (state.entries.length === 0) {
+    listEl.innerHTML = '<p class="empty">No errors or warnings seen yet.</p>'
+    return
+  }
+
+  listEl.innerHTML = state.entries.map(function (entry) {
+    const path = entry.requestPath ? (entry.requestMethod || '') + ' ' + entry.requestPath : ''
+    const status = entry.responseStatusCode ? ' (' + entry.responseStatusCode + ')' : ''
+    return '<div class="row">' +
+      '<div class="row-header">' +
+        '<span class="badge ' + entry.level + '">' + entry.level + '</span>' +
+        '<span class="meta">' + fmtTime(entry.timestampInMs) + ' · ' + escapeHtml(entry.source || '') + '</span>' +
+      '</div>' +
+      (path ? '<div class="meta">' + escapeHtml(path + status) + '</div>' : '') +
+      '<div class="alert-message">' + escapeHtml(entry.message) + '</div>' +
+    '</div>'
+  }).join('')
+}
+
+// ---------- Backups ----------
+
+async function loadBackups() {
+  try {
+    const res = await fetch('/api/backups')
+    renderBackups(await res.json())
+    clearError()
+  } catch (err) {
+    showError('Failed to load backups: ' + err.message)
+  }
+}
+
+function renderBackups(backups) {
+  const listEl = document.getElementById('backups-list')
+  if (backups.length === 0) {
+    listEl.innerHTML = '<p class="empty">No backups yet.</p>'
+    return
+  }
+  listEl.innerHTML = backups.map(function (b) {
+    const countsText = Object.entries(b.counts).map(function (e) { return e[0] + ': ' + e[1] }).join(' · ')
+    return '<div class="row" data-file="' + b.file + '">' +
+      '<div class="row-header">' +
+        '<div>' +
+          '<div>' + fmtTime(b.timestamp) + '</div>' +
+          '<div class="meta">' + escapeHtml(countsText) + ' · ' + fmtBytes(b.sizeBytes) + '</div>' +
+        '</div>' +
+        '<div class="actions">' +
+          '<button class="secondary" onclick="togglePreview(\'' + b.file + '\')">Preview</button>' +
+          '<button class="secondary" onclick="showRestoreConfirm(\'' + b.file + '\')">Restore</button>' +
+          '<button onclick="doDelete(\'' + b.file + '\')">Delete</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="preview" id="preview-' + b.file + '" hidden></div>' +
+      '<div class="restore-confirm" id="restore-' + b.file + '" hidden>' +
+        '<input type="text" placeholder="Type RESTORE to confirm" id="confirm-input-' + b.file + '" oninput="onConfirmInput(\'' + b.file + '\')" />' +
+        '<button id="confirm-btn-' + b.file + '" disabled onclick="doRestore(\'' + b.file + '\')">Confirm restore</button>' +
+      '</div>' +
+    '</div>'
+  }).join('')
+}
+
+async function togglePreview(file) {
+  const el = document.getElementById('preview-' + file)
+  if (!el.hidden) { el.hidden = true; return }
+  el.hidden = false
+  el.textContent = 'Loading…'
+  try {
+    const res = await fetch('/api/backups/' + encodeURIComponent(file))
+    const backup = await res.json()
+    el.innerHTML = Object.entries(backup.tables).map(function (e) {
+      return '<strong>' + e[0] + ' (' + e[1].length + ')</strong><pre>' + escapeHtml(JSON.stringify(e[1], null, 2)) + '</pre>'
+    }).join('')
+  } catch (err) {
+    el.textContent = 'Failed to load preview: ' + err.message
+  }
+}
+
+function showRestoreConfirm(file) {
+  const el = document.getElementById('restore-' + file)
+  el.hidden = !el.hidden
+}
+
+function onConfirmInput(file) {
+  document.getElementById('confirm-btn-' + file).disabled =
+    document.getElementById('confirm-input-' + file).value !== 'RESTORE'
+}
+
+async function doRestore(file) {
+  const btn = document.getElementById('confirm-btn-' + file)
+  btn.disabled = true
+  btn.textContent = 'Restoring…'
+  try {
+    const res = await fetch('/api/backups/' + encodeURIComponent(file) + '/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'RESTORE' }),
+    })
+    const result = await res.json()
+    if (!res.ok) throw new Error(result.error || 'Restore failed')
+    clearError()
+    alert('Restore complete.')
+    document.getElementById('restore-' + file).hidden = true
+  } catch (err) {
+    showError('Restore failed: ' + err.message)
+  } finally {
+    btn.textContent = 'Confirm restore'
+  }
+}
+
+async function doDelete(file) {
+  if (!confirm('Delete backup ' + file + '? This only removes the local backup file, not live data.')) return
+  try {
+    const res = await fetch('/api/backups/' + encodeURIComponent(file), { method: 'DELETE' })
+    if (!res.ok) throw new Error((await res.json()).error || 'Delete failed')
+    loadBackups()
+  } catch (err) {
+    showError('Delete failed: ' + err.message)
+  }
+}
+
+document.getElementById('backup-now').addEventListener('click', async function () {
+  const btn = document.getElementById('backup-now')
+  btn.disabled = true
+  btn.textContent = 'Backing up…'
+  try {
+    await fetch('/api/backups', { method: 'POST' })
+    await loadBackups()
+    clearError()
+  } catch (err) {
+    showError('Backup failed: ' + err.message)
+  } finally {
+    btn.disabled = false
+    btn.textContent = 'Backup now'
+  }
+})
+
+loadAlerts()
+loadBackups()
+setInterval(loadAlerts, 5000)
+</script>
+</body>
+</html>
