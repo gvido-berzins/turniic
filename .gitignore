@@ -37,6 +37,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# db backups (may contain data, and are just local artifacts)
+/backups/
+
+# local alerts log (dev-only artifact)
+/logs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

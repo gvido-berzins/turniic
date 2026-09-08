@@ -207,6 +207,37 @@ On mobile devices:
 - Tie-breaker: highest latest-round points, then alphabetical by name
 - Real-time updates across all users
 
+## Local Ops Panel
+
+A local-only dev tool (never deployed) for managing Supabase backups and
+watching production errors, without needing any auth setup:
+
+```bash
+npm run backup:panel
+```
+
+Then open http://127.0.0.1:4545. It shows:
+- **Production Alerts** — a live tail of Vercel Runtime Log entries at
+  error/fatal/warning level for the current production deployment.
+  Requires `VERCEL_TOKEN` (personal token from
+  https://vercel.com/account/tokens) and `VERCEL_PROJECT_ID` (Vercel
+  Dashboard → Project → Settings → General) in `.env.local` (plus
+  `VERCEL_TEAM_ID` if the project belongs to a team). Only sees server-side
+  errors (API routes, Server Components, middleware) — most of this app's
+  Supabase calls happen client-side and won't appear here.
+- **Backups** — create/preview/restore/delete JSON backups of all 4 tables.
+  Restoring requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (Supabase
+  Dashboard → Project Settings → API → service_role secret) and wipes +
+  replaces all table data, so it asks you to type `RESTORE` to confirm.
+
+You can also run backup/restore from the CLI directly:
+
+```bash
+npm run db:backup                # writes backups/backup-<timestamp>.json
+npm run db:restore                # restores from the most recent backup file
+npm run db:restore -- <file>      # restores from a specific backup file
+```
+
 ## Project Structure
 
 ```
