@@ -4,6 +4,11 @@ import { dirname } from 'node:path'
 const VERCEL_API = 'https://api.vercel.com'
 const DEPLOYMENT_POLL_INTERVAL_MS = 60_000
 const RECONNECT_DELAY_MS = 3_000
+// Vercel's runtime-logs endpoint silently closes the socket after ~60s of no
+// log activity (confirmed empirically: undici throws UND_ERR_SOCKET / "other
+// side closed", zero bytes read). That's routine on a quiet app, not an
+// error -- reconnect almost immediately rather than treating it like one.
+const IDLE_RECONNECT_DELAY_MS = 250
 const ERROR_BACKOFF_MS = 5 * 60_000
 const MAX_BUFFER_ENTRIES = 500
 const ALERT_LEVELS = new Set(['error', 'fatal', 'warning'])
@@ -94,6 +99,10 @@ export function createAlertsPoller({ token, projectId, teamId, logFilePath }) {
     }
   }
 
+  function isRoutineDisconnect(err) {
+    return Boolean(err.cause && (err.cause.code === 'UND_ERR_SOCKET' || err.cause.code === 'ECONNRESET'))
+  }
+
   async function checkForNewDeployment() {
     try {
       const latest = await fetchLatestProductionDeploymentId()
@@ -120,15 +129,23 @@ export function createAlertsPoller({ token, projectId, teamId, logFilePath }) {
 
       state.watching = deploymentId
       currentController = new AbortController()
+      let reconnectDelay = RECONNECT_DELAY_MS
       try {
         await streamRuntimeLogs(deploymentId, currentController.signal)
+        state.error = null
+        reconnectDelay = IDLE_RECONNECT_DELAY_MS
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (err.name === 'AbortError') {
+          reconnectDelay = IDLE_RECONNECT_DELAY_MS
+        } else if (isRoutineDisconnect(err)) {
+          state.error = null
+          reconnectDelay = IDLE_RECONNECT_DELAY_MS
+        } else {
           state.error = err.message
           await sleep(ERROR_BACKOFF_MS)
         }
       }
-      if (!stopped) await sleep(RECONNECT_DELAY_MS)
+      if (!stopped) await sleep(reconnectDelay)
     }
   }
 
