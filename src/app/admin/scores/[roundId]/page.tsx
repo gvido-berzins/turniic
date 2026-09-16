@@ -75,7 +75,7 @@ export default function ScoresAdmin() {
       totalsByParticipant.set(s.participant_id, (totalsByParticipant.get(s.participant_id) || 0) + s.points)
     }
 
-    return participants.map(participant => {
+    const entries = participants.map(participant => {
       const existingScore = scores.find(s => s.participant_id === participant.id)
       return {
         participant,
@@ -84,6 +84,16 @@ export default function ScoresAdmin() {
         totalPoints: totalsByParticipant.get(participant.id!) ?? 0
       }
     })
+
+    // Priority sort: participants with no score for this round yet float to the
+    // top, so whoever is entering points can see who still needs them. `score`
+    // is null only when no row exists for this round (an explicit 0 counts as
+    // entered). A stable sort keeps the alphabetical order within each group,
+    // and because it keys off the persisted `score` (not local `points`), typing
+    // a value never reorders the list mid-entry — it re-sorts on save/refresh.
+    entries.sort((a, b) => Number(a.score !== null) - Number(b.score !== null))
+
+    return entries
   }
 
   async function fetchData() {
